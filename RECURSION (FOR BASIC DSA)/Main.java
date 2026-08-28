@@ -118,6 +118,24 @@ class FibNum{
     }
 }
 
+class FibSum{
+    public static int getFib(int n){
+    if(n<=2){
+        return 1;
+    }
+    else{
+        return getFib(n-1)+getFib(n-2);
+    }
+}
+    public static int sum(int n){
+        if(n<=0){
+            return 0;
+        }
+        else{
+            return getFib(n)+sum(n-1);
+        }
+    }
+}
 
 
 
@@ -134,6 +152,9 @@ public class Main{
         // System.out.print("factorial is : " + factorial.output(5));
         // System.out.print("power is : " + power2.output(2));
         // System.out.print("fib number is : " + FibNum.output(30));
+        System.out.print("fib number is : " + FibSum.sum(10));
+
+
 
 
 
