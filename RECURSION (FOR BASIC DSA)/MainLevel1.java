@@ -142,7 +142,8 @@ class FibSum{
 
 
 
-public class Main{
+
+public class MainLevel1{
     public static void main(String args[]){
         // print1toN.output(30);
         // printNto1.output(30);
