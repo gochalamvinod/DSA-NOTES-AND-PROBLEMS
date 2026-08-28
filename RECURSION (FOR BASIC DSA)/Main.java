@@ -74,6 +74,53 @@ class printOdd{
     }
 }
 
+class printSum{
+    public static int output(int n){
+        if (n>0){
+            return (n+output(n-1));
+        }
+        else{
+            return 0;
+        }
+    }
+}
+
+class factorial{
+    public static int output(int n){
+        if (n>0){
+            return n*output(n-1);
+        }
+        else{
+            return 1;
+        }
+    }
+}
+
+class power2{
+    public static int output(int n){
+        if(n>0){
+            return 2*output(n-1);
+        }
+        else{
+            return 1;
+        }
+    }
+}
+
+class FibNum{
+    public static int output(int n){
+        if(n<=2){
+            return 1;
+        }
+        else{
+            return output(n-1)+output(n-2);
+        }
+    }
+}
+
+
+
+
 
 
 
@@ -82,6 +129,13 @@ public class Main{
         // print1toN.output(30);
         // printNto1.output(30);
         // printEven.output(31);
-        printOdd.output(30);
+        // printOdd.output(30);
+        // System.out.print("Sum is : " + printSum.output(10));
+        // System.out.print("factorial is : " + factorial.output(5));
+        // System.out.print("power is : " + power2.output(2));
+        // System.out.print("fib number is : " + FibNum.output(30));
+
+
+
     }
 }
