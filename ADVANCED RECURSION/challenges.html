@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>~/challenges $ ./run --all</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#0e131b; --panel-2:#111826; --border:#1f2733;
+    --text:#c9d1d9; --muted:#6e7681; --dim:#4a5260;
+    --accent:#58a6ff;
+    --info:#3fb950; --info-dim:#1b3a24;
+    --warn:#d29922; --warn-dim:#3a2f10;
+    --error:#f0883e; --error-dim:#3a2410;
+    --crit:#f85149; --crit-dim:#3a1414;
+    --fatal:#bc8cff; --fatal-dim:#2b1f3f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px; line-height:1.6;
+  }
+  .app{display:flex; flex-direction:column; height:100vh;}
+  .termbar{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 16px; background:var(--panel-2); border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .dots{display:flex; gap:6px;}
+  .dot{width:11px; height:11px; border-radius:50%;}
+  .dot.r{background:#f85149;} .dot.y{background:#d29922;} .dot.g{background:#3fb950;}
+  .termbar .path{color:var(--muted); font-size:12.5px; margin-left:4px;}
+  .termbar .path b{color:var(--accent); font-weight:500;}
+  .termbar .stats{margin-left:auto; display:flex; gap:14px; font-size:11.5px; color:var(--dim);}
+  .termbar .stats span b{color:var(--text);}
+  .layout{display:flex; flex:1; min-height:0;}
+
+  .rail{
+    width:400px; flex-shrink:0; border-right:1px solid var(--border);
+    display:flex; flex-direction:column; background:var(--panel);
+    min-height:0;
+  }
+  .promptbar{
+    padding:12px 14px; border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .promptbar .line{display:flex; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--border); border-radius:3px; padding:7px 10px;}
+  .promptbar .line span.sym{color:var(--info); font-weight:700;}
+  .promptbar input{
+    background:transparent; border:none; outline:none; color:var(--text);
+    font-family:inherit; font-size:13px; flex:1;
+  }
+  .promptbar input::placeholder{color:var(--dim);}
+  .caret{display:inline-block; width:7px; height:14px; background:var(--info); animation:blink 1s step-end infinite;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .tabs{display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px; border-bottom:1px solid var(--border); flex-shrink:0;}
+  .tab{
+    font-family:inherit; font-size:11px; padding:5px 9px; border-radius:3px; cursor:pointer;
+    border:1px solid var(--border); background:var(--panel-2); color:var(--muted);
+    user-select:none; letter-spacing:.3px;
+  }
+  .tab b{font-weight:700;}
+  .tab.active{color:var(--bg); border-color:transparent;}
+  .tab[data-t="all"].active{background:var(--accent); color:#04101f;}
+  .tab[data-t="Easy"].active{background:var(--info);}
+  .tab[data-t="Medium"].active{background:var(--warn);}
+  .tab[data-t="Hard"].active{background:var(--error);}
+  .tab[data-t="Ultra"].active{background:var(--crit);}
+  .tab[data-t="Extreme"].active{background:var(--fatal); color:#1a0f2e;}
+
+  .loglist{flex:1; overflow-y:auto; min-height:0;}
+  .logitem{
+    display:flex; align-items:flex-start; gap:9px; padding:9px 14px;
+    border-left:3px solid transparent; border-bottom:1px solid #131a24;
+    cursor:pointer;
+  }
+  .logitem:hover{background:var(--panel-2);}
+  .logitem.selected{background:var(--panel-2); border-left-color:var(--accent);}
+  .logitem .chk{
+    margin-top:2px; width:13px; height:13px; border:1px solid var(--dim); border-radius:2px;
+    flex-shrink:0; cursor:pointer; position:relative;
+  }
+  .logitem .chk.done{background:var(--info); border-color:var(--info);}
+  .logitem .chk.done::after{content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9px; color:#04150a; font-weight:800;}
+  .logitem .num{color:var(--dim); font-size:11px; width:26px; flex-shrink:0; padding-top:1px;}
+  .logitem .sev{font-size:10px; font-weight:700; width:56px; flex-shrink:0; padding-top:1px; letter-spacing:.3px;}
+  .sev.Easy{color:var(--info);} .sev.Medium{color:var(--warn);} .sev.Hard{color:var(--error);}
+  .sev.Ultra{color:var(--crit);} .sev.Extreme{color:var(--fatal);}
+  .logitem .ttl{flex:1; color:var(--text); font-size:12.5px;}
+  .logitem.done .ttl{color:var(--dim); text-decoration:line-through;}
+  .logitem .tg{font-size:10px; color:var(--dim);}
+
+  .detail{flex:1; overflow-y:auto; padding:34px 46px; min-height:0;}
+  .detail .hd{display:flex; align-items:center; gap:12px; margin-bottom:6px; flex-wrap:wrap;}
+  .detail h1{font-family:'JetBrains Mono',monospace; font-size:22px; margin:0; font-weight:800; color:#fff;}
+  .badge{font-size:11px; font-weight:800; padding:4px 9px; border-radius:3px; letter-spacing:.4px;}
+  .badge.Easy{background:var(--info-dim); color:var(--info); border:1px solid var(--info);}
+  .badge.Medium{background:var(--warn-dim); color:var(--warn); border:1px solid var(--warn);}
+  .badge.Hard{background:var(--error-dim); color:var(--error); border:1px solid var(--error);}
+  .badge.Ultra{background:var(--crit-dim); color:var(--crit); border:1px solid var(--crit);}
+  .badge.Extreme{background:var(--fatal-dim); color:var(--fatal); border:1px solid var(--fatal);}
+  .idline{color:var(--dim); font-size:12px; margin-bottom:16px;}
+  .taglist{display:flex; gap:6px; margin-bottom:22px; flex-wrap:wrap;}
+  .chip{font-size:11px; color:var(--accent); border:1px solid #1c3a5c; background:#0e1c2e; padding:3px 8px; border-radius:11px;}
+  .sec-h{font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin:26px 0 10px; display:flex; align-items:center; gap:8px;}
+  .sec-h::before{content:'#'; color:var(--dim);}
+  .desc{color:var(--text); font-size:14px; line-height:1.75; white-space:pre-line;}
+  .ex{background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:14px 16px; margin-bottom:12px;}
+  .ex .row{display:flex; gap:10px; font-size:13px; margin-bottom:4px;}
+  .ex .row:last-child{margin-bottom:0;}
+  .ex .k{color:var(--dim); flex-shrink:0; width:66px;}
+  .ex .v{color:var(--text); font-family:'JetBrains Mono',monospace; font-size:12.5px;}
+  .ex .exp{color:var(--muted); font-family:'IBM Plex Mono',monospace;}
+  ul.cons{margin:0; padding-left:20px; color:var(--text);}
+  ul.cons li{margin-bottom:5px; font-size:13px; color:var(--muted);}
+  ul.cons li b{color:var(--text); font-weight:500;}
+  .footline{margin-top:34px; padding-top:16px; border-top:1px dashed var(--border); color:var(--dim); font-size:11.5px;}
+  .empty{color:var(--dim); padding:60px; text-align:center;}
+
+  ::-webkit-scrollbar{width:9px; height:9px;}
+  ::-webkit-scrollbar-track{background:var(--panel);}
+  ::-webkit-scrollbar-thumb{background:#242c39; border-radius:5px;}
+  ::-webkit-scrollbar-thumb:hover{background:#2f3949;}
+
+  @media (max-width:820px){
+    .layout{flex-direction:column;}
+    .rail{width:100%; height:46vh; border-right:none; border-bottom:1px solid var(--border);}
+    .detail{padding:22px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="termbar">
+    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    <div class="path"><b>~/challenges</b> $ ./run --all</div>
+    <div class="stats">
+      <span><b id="cnt-Easy">10</b> INFO</span>
+      <span><b id="cnt-Medium">20</b> WARN</span>
+      <span><b id="cnt-Hard">30</b> ERROR</span>
+      <span><b id="cnt-Ultra">20</b> CRITICAL</span>
+      <span><b id="cnt-Extreme">20</b> FATAL</span>
+      <span>solved <b id="cnt-solved">0</b>/100</span>
+    </div>
+  </div>
+  <div class="layout">
+    <aside class="rail">
+      <div class="promptbar">
+        <div class="line">
+          <span class="sym">$</span>
+          <input id="search" type="text" placeholder="grep -i 'title or tag'...">
+          <span class="caret"></span>
+        </div>
+      </div>
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-t="all">ALL <b id="tab-all-n">100</b></div>
+        <div class="tab" data-t="Easy">INFO / EASY <b>10</b></div>
+        <div class="tab" data-t="Medium">WARN / MEDIUM <b>20</b></div>
+        <div class="tab" data-t="Hard">ERROR / HARD <b>30</b></div>
+        <div class="tab" data-t="Ultra">CRITICAL / ULTRA <b>20</b></div>
+        <div class="tab" data-t="Extreme">FATAL / EXTREME <b>20</b></div>
+      </div>
+      <div class="loglist" id="list"></div>
+    </aside>
+    <main class="detail" id="detail"></main>
+  </div>
+</div>
+
+<script>
+const SEV = {Easy:'INFO', Medium:'WARN', Hard:'ERROR', Ultra:'CRITICAL', Extreme:'FATAL'};
+
+const PROBLEMS = [
+// ---------------- EASY (1-10) ----------------
+{id:1, title:"Two Sum", diff:"Easy", tags:["Array","Hash Table"],
+ desc:"Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. Assume exactly one valid pair exists, and you may not use the same element twice.",
+ examples:[{in:"nums = [2,7,11,15], target = 9", out:"[0,1]", exp:"nums[0] + nums[1] == 9"}],
+ constraints:["2 <= nums.length <= 10^4","-10^9 <= nums[i] <= 10^9","Exactly one valid answer exists"]},
+{id:2, title:"Reverse a String In Place", diff:"Easy", tags:["Two Pointers","String"],
+ desc:"Write a function that reverses an array of characters in place, using O(1) extra memory.",
+ examples:[{in:"s = ['h','e','l','l','o']", out:"['o','l','l','e','h']"}],
+ constraints:["1 <= s.length <= 10^5","s[i] is a printable ASCII character","Must modify the array in place"]},
+{id:3, title:"Valid Palindrome", diff:"Easy", tags:["Two Pointers","String"],
+ desc:"Given a string, determine if it is a palindrome after converting all uppercase letters to lowercase and removing all non-alphanumeric characters.",
+ examples:[{in:'s = "A man, a plan, a canal: Panama"', out:"true"},{in:'s = "race a car"', out:"false"}],
+ constraints:["1 <= s.length <= 2*10^5","s consists of printable ASCII characters"]},
+{id:4, title:"FizzBuzz", diff:"Easy", tags:["Math","Simulation"],
+ desc:'Given an integer n, return a string array answer where answer[i] is "FizzBuzz" if i is divisible by 15, "Fizz" if divisible by 3, "Buzz" if divisible by 5, and the number itself otherwise (1-indexed).',
+ examples:[{in:"n = 5", out:'["1","2","Fizz","4","Buzz"]'}],
+ constraints:["1 <= n <= 10^4"]},
+{id:5, title:"Contains Duplicate", diff:"Easy", tags:["Array","Hash Table"],
+ desc:"Given an integer array nums, return true if any value appears at least twice, and false if every element is distinct.",
+ examples:[{in:"nums = [1,2,3,1]", out:"true"},{in:"nums = [1,2,3,4]", out:"false"}],
+ constraints:["1 <= nums.length <= 10^5","-10^9 <= nums[i] <= 10^9"]},
+{id:6, title:"Merge Two Sorted Arrays", diff:"Easy", tags:["Array","Two Pointers"],
+ desc:"Merge two sorted integer arrays nums1 and nums2 into nums1 as one sorted array, given that nums1 has extra trailing space of length m+n to hold the result.",
+ examples:[{in:"nums1=[1,2,3,0,0,0], m=3, nums2=[2,5,6], n=3", out:"[1,2,2,3,5,6]"}],
+ constraints:["0 <= m, n <= 200","1 <= m+n <= 200","Both input arrays are sorted in non-decreasing order"]},
+{id:7, title:"Valid Anagram", diff:"Easy", tags:["Hash Table","String"],
+ desc:"Given two strings s and t, return true if t is an anagram of s (uses the exact same letters with the same frequency), and false otherwise.",
+ examples:[{in:'s = "anagram", t = "nagaram"', out:"true"},{in:'s = "rat", t = "car"', out:"false"}],
+ constraints:["1 <= s.length, t.length <= 5*10^4","s and t consist of lowercase English letters"]},
+{id:8, title:"Single Number", diff:"Easy", tags:["Bit Manipulation","Array"],
+ desc:"Given a non-empty array of integers where every element appears twice except for one, find that single element in O(n) time and O(1) extra space.",
+ examples:[{in:"nums = [4,1,2,1,2]", out:"4"}],
+ constraints:["1 <= nums.length <= 3*10^4","Exactly one element appears once; all others appear exactly twice"]},
+{id:9, title:"Move Zeroes", diff:"Easy", tags:["Array","Two Pointers"],
+ desc:"Given an integer array nums, move all zeroes to the end while maintaining the relative order of the non-zero elements, modifying the array in place.",
+ examples:[{in:"nums = [0,1,0,3,12]", out:"[1,3,12,0,0]"}],
+ constraints:["1 <= nums.length <= 10^4","Must be done in place without copying the array"]},
+{id:10, title:"Maximum Subarray", diff:"Easy", tags:["Array","Dynamic Programming"],
+ desc:"Given an integer array nums, find the contiguous subarray (containing at least one number) with the largest sum, and return that sum.",
+ examples:[{in:"nums = [-2,1,-3,4,-1,2,1,-5,4]", out:"6", exp:"[4,-1,2,1] has the largest sum = 6"}],
+ constraints:["1 <= nums.length <= 10^5","-10^4 <= nums[i] <= 10^4"]},
+
+// ---------------- MEDIUM (11-30) ----------------
+{id:11, title:"Longest Substring Without Repeating Characters", diff:"Medium", tags:["Sliding Window","Hash Table"],
+ desc:"Given a string s, find the length of the longest substring without repeating characters.",
+ examples:[{in:'s = "abcabcbb"', out:"3", exp:'The answer is "abc"'}],
+ constraints:["0 <= s.length <= 5*10^4","s consists of English letters, digits, symbols and spaces"]},
+{id:12, title:"Group Anagrams", diff:"Medium", tags:["Hash Table","String"],
+ desc:"Given an array of strings, group the anagrams together. You may return the answer in any order.",
+ examples:[{in:'strs = ["eat","tea","tan","ate","nat","bat"]', out:'[["bat"],["nat","tan"],["ate","eat","tea"]]'}],
+ constraints:["1 <= strs.length <= 10^4","0 <= strs[i].length <= 100"]},
+{id:13, title:"Product of Array Except Self", diff:"Medium", tags:["Array","Prefix Sum"],
+ desc:"Given an integer array nums, return an array answer where answer[i] equals the product of all elements of nums except nums[i], without using division and in O(n) time.",
+ examples:[{in:"nums = [1,2,3,4]", out:"[24,12,8,6]"}],
+ constraints:["2 <= nums.length <= 10^5","The product of any prefix or suffix fits in a 32-bit integer"]},
+{id:14, title:"3Sum", diff:"Medium", tags:["Array","Two Pointers"],
+ desc:"Given an integer array nums, return all unique triplets [nums[i], nums[j], nums[k]] such that i != j != k and the triplet sums to zero.",
+ examples:[{in:"nums = [-1,0,1,2,-1,-4]", out:"[[-1,-1,2],[-1,0,1]]"}],
+ constraints:["3 <= nums.length <= 3000","-10^5 <= nums[i] <= 10^5"]},
+{id:15, title:"Binary Tree Level Order Traversal", diff:"Medium", tags:["Tree","BFS"],
+ desc:"Given the root of a binary tree, return the values of its nodes grouped level by level, from left to right.",
+ examples:[{in:"root = [3,9,20,null,null,15,7]", out:"[[3],[9,20],[15,7]]"}],
+ constraints:["The number of nodes is in the range [0, 2000]","-1000 <= Node.val <= 1000"]},
+{id:16, title:"Kth Largest Element in an Array", diff:"Medium", tags:["Heap","Quickselect"],
+ desc:"Given an integer array nums and an integer k, return the kth largest element in the array (the kth largest in sorted order, not the kth distinct element).",
+ examples:[{in:"nums = [3,2,1,5,6,4], k = 2", out:"5"}],
+ constraints:["1 <= k <= nums.length <= 10^5","-10^4 <= nums[i] <= 10^4"]},
+{id:17, title:"Top K Frequent Elements", diff:"Medium", tags:["Heap","Bucket Sort"],
+ desc:"Given an integer array nums and integer k, return the k most frequent elements, in any order, faster than O(n log n) where possible.",
+ examples:[{in:"nums = [1,1,1,2,2,3], k = 2", out:"[1,2]"}],
+ constraints:["1 <= nums.length <= 10^5","k is between 1 and the number of distinct elements"]},
+{id:18, title:"Course Schedule", diff:"Medium", tags:["Graph","Topological Sort"],
+ desc:"Given numCourses and a list of prerequisite pairs [a,b] meaning you must take b before a, determine whether it is possible to finish all courses (i.e. the prerequisite graph has no cycle).",
+ examples:[{in:"numCourses = 2, prerequisites = [[1,0]]", out:"true"},{in:"numCourses = 2, prerequisites = [[1,0],[0,1]]", out:"false"}],
+ constraints:["1 <= numCourses <= 2000","0 <= prerequisites.length <= 5000"]},
+{id:19, title:"Number of Islands", diff:"Medium", tags:["Graph","DFS/BFS","Matrix"],
+ desc:"Given an m x n binary grid representing land ('1') and water ('0'), return the number of islands, where an island is a group of horizontally/vertically connected land cells.",
+ examples:[{in:'grid = [["1","1","0"],["0","1","0"],["0","0","1"]]', out:"2"}],
+ constraints:["1 <= m, n <= 300","grid[i][j] is either '0' or '1'"]},
+{id:20, title:"Coin Change", diff:"Medium", tags:["Dynamic Programming"],
+ desc:"Given coin denominations and a target amount, return the fewest number of coins needed to make up that amount, or -1 if it cannot be made.",
+ examples:[{in:"coins = [1,2,5], amount = 11", out:"3", exp:"11 = 5 + 5 + 1"}],
+ constraints:["1 <= coins.length <= 12","1 <= amount <= 10^4"]},
+{id:21, title:"Longest Palindromic Substring", diff:"Medium", tags:["String","Dynamic Programming"],
+ desc:"Given a string s, return the longest substring of s that is a palindrome.",
+ examples:[{in:'s = "babad"', out:'"bab"', exp:'"aba" is also a valid answer'}],
+ constraints:["1 <= s.length <= 1000"]},
+{id:22, title:"Rotate Image", diff:"Medium", tags:["Matrix","In-place"],
+ desc:"Given an n x n 2D matrix representing an image, rotate the image by 90 degrees clockwise in place, without allocating another matrix.",
+ examples:[{in:"matrix = [[1,2,3],[4,5,6],[7,8,9]]", out:"[[7,4,1],[8,5,2],[9,6,3]]"}],
+ constraints:["1 <= n <= 20","Must be done in place"]},
+{id:23, title:"Search in Rotated Sorted Array", diff:"Medium", tags:["Binary Search","Array"],
+ desc:"Given a sorted array that has been rotated at an unknown pivot and a target value, search for the target in O(log n) time and return its index, or -1 if not found.",
+ examples:[{in:"nums = [4,5,6,7,0,1,2], target = 0", out:"4"}],
+ constraints:["1 <= nums.length <= 5000","All values in nums are unique"]},
+{id:24, title:"Validate Binary Search Tree", diff:"Medium", tags:["Tree","DFS"],
+ desc:"Given the root of a binary tree, determine if it is a valid binary search tree, where every node's value strictly lies between the bounds set by its ancestors.",
+ examples:[{in:"root = [5,1,4,null,null,3,6]", out:"false", exp:"4's right subtree has a value 3 < 4's node value 5"}],
+ constraints:["Number of nodes is in the range [1, 10^4]"]},
+{id:25, title:"Word Break", diff:"Medium", tags:["Dynamic Programming","Trie"],
+ desc:"Given a string s and a dictionary of words, determine if s can be segmented into a sequence of one or more dictionary words.",
+ examples:[{in:'s = "leetcode", wordDict = ["leet","code"]', out:"true"}],
+ constraints:["1 <= s.length <= 300","1 <= wordDict.length <= 1000"]},
+{id:26, title:"Subsets", diff:"Medium", tags:["Backtracking","Bit Manipulation"],
+ desc:"Given an integer array of unique elements, return all possible subsets (the power set), with no duplicate subsets.",
+ examples:[{in:"nums = [1,2,3]", out:"[[],[1],[2],[3],[1,2],[1,3],[2,3],[1,2,3]]"}],
+ constraints:["1 <= nums.length <= 10","All elements are unique"]},
+{id:27, title:"Combination Sum", diff:"Medium", tags:["Backtracking"],
+ desc:"Given an array of distinct positive integers and a target, return all unique combinations where the chosen numbers sum to the target; the same number may be reused unlimited times.",
+ examples:[{in:"candidates = [2,3,6,7], target = 7", out:"[[2,2,3],[7]]"}],
+ constraints:["1 <= candidates.length <= 30","2 <= candidates[i] <= 40"]},
+{id:28, title:"Clone Graph", diff:"Medium", tags:["Graph","DFS/BFS"],
+ desc:"Given a reference node in a connected undirected graph, return a deep copy (clone) of the entire graph, preserving all node connections.",
+ examples:[{in:"adjList = [[2,4],[1,3],[2,4],[1,3]]", out:"[[2,4],[1,3],[2,4],[1,3]]"}],
+ constraints:["Number of nodes is in the range [0, 100]","No repeated edges or self-loops"]},
+{id:29, title:"Decode Ways", diff:"Medium", tags:["Dynamic Programming","String"],
+ desc:'Given a string of digits where A-Z is mapped to 1-26, count the total number of ways to decode it, given "0" cannot stand alone.',
+ examples:[{in:'s = "226"', out:"3", exp:'"2 2 6", "22 6", "2 26"'}],
+ constraints:["1 <= s.length <= 100","s contains only digits"]},
+{id:30, title:"Container With Most Water", diff:"Medium", tags:["Two Pointers","Greedy"],
+ desc:"Given n non-negative integers representing vertical line heights, find two lines that together with the x-axis form a container holding the most water, and return that max area.",
+ examples:[{in:"height = [1,8,6,2,5,4,8,3,7]", out:"49"}],
+ constraints:["2 <= height.length <= 10^5","0 <= height[i] <= 10^4"]},
+
+// ---------------- HARD (31-60) ----------------
+{id:31, title:"Merge K Sorted Lists", diff:"Hard", tags:["Heap","Linked List","Divide & Conquer"],
+ desc:"You are given an array of k sorted linked lists. Merge all the lists into one sorted linked list and return it, ideally in O(N log k) time.",
+ examples:[{in:"lists = [[1,4,5],[1,3,4],[2,6]]", out:"[1,1,2,3,4,4,5,6]"}],
+ constraints:["0 <= k <= 10^4","Total number of nodes across all lists <= 10^4"]},
+{id:32, title:"Trapping Rain Water", diff:"Hard", tags:["Two Pointers","Stack","DP"],
+ desc:"Given n non-negative integers representing an elevation map where each bar has width 1, compute how much water it can trap after raining.",
+ examples:[{in:"height = [0,1,0,2,1,0,1,3,2,1,2,1]", out:"6"}],
+ constraints:["1 <= height.length <= 2*10^4","0 <= height[i] <= 10^5"]},
+{id:33, title:"Median of Two Sorted Arrays", diff:"Hard", tags:["Binary Search","Array"],
+ desc:"Given two sorted arrays nums1 and nums2 of sizes m and n, return the median of the two sorted arrays combined, in O(log(m+n)) time.",
+ examples:[{in:"nums1 = [1,3], nums2 = [2]", out:"2.0"}],
+ constraints:["0 <= m, n <= 1000","1 <= m + n <= 2000"]},
+{id:34, title:"Longest Increasing Subsequence", diff:"Hard", tags:["DP","Binary Search"],
+ desc:"Given an integer array nums, return the length of the longest strictly increasing subsequence, solvable in O(n log n).",
+ examples:[{in:"nums = [10,9,2,5,3,7,101,18]", out:"4", exp:"[2,3,7,101]"}],
+ constraints:["1 <= nums.length <= 2500"]},
+{id:35, title:"Edit Distance", diff:"Hard", tags:["Dynamic Programming","String"],
+ desc:"Given two strings word1 and word2, return the minimum number of single-character insert, delete, or replace operations to convert word1 to word2.",
+ examples:[{in:'word1 = "horse", word2 = "ros"', out:"3"}],
+ constraints:["0 <= word1.length, word2.length <= 500"]},
+{id:36, title:"Regular Expression Matching", diff:"Hard", tags:["DP","String"],
+ desc:'Implement regular expression matching that supports "." (any single character) and "*" (zero or more of the preceding element), matching the entire input string.',
+ examples:[{in:'s = "aa", p = "a*"', out:"true"}],
+ constraints:["1 <= s.length <= 20","1 <= p.length <= 30"]},
+{id:37, title:"Wildcard Matching", diff:"Hard", tags:["DP","Greedy","String"],
+ desc:'Implement wildcard pattern matching supporting "?" (matches any single character) and "*" (matches any sequence, including empty), matching the entire input string.',
+ examples:[{in:'s = "adceb", p = "*a*b*"', out:"true"}],
+ constraints:["0 <= s.length, p.length <= 2000"]},
+{id:38, title:"N-Queens", diff:"Hard", tags:["Backtracking"],
+ desc:"Given an integer n, return all distinct ways to place n queens on an n x n chessboard so that no two queens attack each other, represented as board configurations.",
+ examples:[{in:"n = 4", out:'[[".Q..","...Q","Q...","..Q."],["..Q.","Q...","...Q",".Q.."]]'}],
+ constraints:["1 <= n <= 9"]},
+{id:39, title:"Sudoku Solver", diff:"Hard", tags:["Backtracking","Matrix"],
+ desc:"Write a program to solve a 9x9 Sudoku puzzle in place by filling the empty cells so every row, column, and 3x3 sub-box contains digits 1-9 exactly once.",
+ examples:[{in:"board with '.' as empty cells", out:"fully solved 9x9 board"}],
+ constraints:["board.length == board[i].length == 9","It is guaranteed the puzzle has a unique solution"]},
+{id:40, title:"Word Ladder", diff:"Hard", tags:["BFS","Graph"],
+ desc:"Given a beginWord, endWord, and a word list, return the length of the shortest transformation sequence changing one letter at a time, where every intermediate word must exist in the word list.",
+ examples:[{in:'beginWord="hit", endWord="cog", wordList=["hot","dot","dog","lot","log","cog"]', out:"5"}],
+ constraints:["1 <= beginWord.length <= 10","1 <= wordList.length <= 5000"]},
+{id:41, title:"Serialize and Deserialize Binary Tree", diff:"Hard", tags:["Tree","Design","DFS"],
+ desc:"Design an algorithm to serialize a binary tree to a string and deserialize that string back to the original tree structure.",
+ examples:[{in:"root = [1,2,3,null,null,4,5]", out:"any encoding that round-trips exactly"}],
+ constraints:["Number of nodes is in the range [0, 10^4]"]},
+{id:42, title:"LRU Cache", diff:"Hard", tags:["Design","Hash Table","Linked List"],
+ desc:"Design a Least Recently Used (LRU) cache supporting get(key) and put(key,value) in O(1) average time, evicting the least recently used entry when capacity is exceeded.",
+ examples:[{in:"capacity=2; put(1,1); put(2,2); get(1); put(3,3) evicts key 2", out:"cache reflects eviction correctly"}],
+ constraints:["1 <= capacity <= 3000","At most 2*10^5 calls to get and put"]},
+{id:43, title:"Longest Valid Parentheses", diff:"Hard", tags:["Stack","DP"],
+ desc:"Given a string containing only '(' and ')', find the length of the longest valid (well-formed) parentheses substring.",
+ examples:[{in:'s = ")()())"', out:"4", exp:'"()()" is the longest valid substring'}],
+ constraints:["0 <= s.length <= 3*10^4"]},
+{id:44, title:"Maximal Rectangle", diff:"Hard", tags:["Stack","DP","Matrix"],
+ desc:"Given a binary matrix filled with 0s and 1s, find the area of the largest rectangle containing only 1s.",
+ examples:[{in:'matrix = [["1","0","1","0","0"],["1","0","1","1","1"],["1","1","1","1","1"],["1","0","0","1","0"]]', out:"6"}],
+ constraints:["1 <= rows, cols <= 200"]},
+{id:45, title:"Word Search II", diff:"Hard", tags:["Trie","Backtracking","Matrix"],
+ desc:"Given an m x n board of characters and a list of words, return all words that can be formed by sequentially adjacent cells (no cell reused within one word), using a trie for efficiency.",
+ examples:[{in:'board=[["o","a","a","n"],["e","t","a","e"],["i","h","k","r"],["i","f","l","v"]], words=["oath","pea","eat","rain"]', out:'["eat","oath"]'}],
+ constraints:["1 <= words.length <= 3*10^4","1 <= board rows, cols <= 12"]},
+{id:46, title:"Alien Dictionary", diff:"Hard", tags:["Graph","Topological Sort"],
+ desc:"Given a list of words sorted lexicographically by an unknown alien alphabet, derive one valid character ordering of that alphabet, or detect that no valid ordering exists.",
+ examples:[{in:'words = ["wrt","wrf","er","ett","rftt"]', out:'"wertf"'}],
+ constraints:["1 <= words.length <= 100","Words consist of lowercase English letters"]},
+{id:47, title:"Minimum Window Substring", diff:"Hard", tags:["Sliding Window","Hash Table"],
+ desc:"Given strings s and t, return the minimum-length substring of s that contains every character of t (with duplicates), or an empty string if no such window exists.",
+ examples:[{in:'s = "ADOBECODEBANC", t = "ABC"', out:'"BANC"'}],
+ constraints:["1 <= s.length, t.length <= 10^5"]},
+{id:48, title:"Sliding Window Maximum", diff:"Hard", tags:["Deque","Sliding Window"],
+ desc:"Given an array nums and a window size k, return an array of the maximum value in each sliding window of size k as it moves left to right, in O(n) time.",
+ examples:[{in:"nums = [1,3,-1,-3,5,3,6,7], k = 3", out:"[3,3,5,5,6,7]"}],
+ constraints:["1 <= k <= nums.length <= 10^5"]},
+{id:49, title:"Palindrome Partitioning II", diff:"Hard", tags:["DP","String"],
+ desc:"Given a string s, partition it so that every substring is a palindrome, and return the minimum number of cuts needed to achieve that partition.",
+ examples:[{in:'s = "aab"', out:"1", exp:'Cut once: "aa" | "b"'}],
+ constraints:["1 <= s.length <= 2000"]},
+{id:50, title:"Best Time to Buy and Sell Stock IV", diff:"Hard", tags:["Dynamic Programming"],
+ desc:"Given an array of daily stock prices and an integer k, find the maximum profit achievable with at most k buy-sell transactions (no overlapping transactions).",
+ examples:[{in:"k = 2, prices = [3,2,6,5,0,3]", out:"7"}],
+ constraints:["0 <= k <= 100","0 <= prices.length <= 1000"]},
+{id:51, title:"Burst Balloons", diff:"Hard", tags:["Dynamic Programming","Interval DP"],
+ desc:"Given n balloons with numbers on them, bursting balloon i earns coins nums[left]*nums[i]*nums[right] using the current neighbors; return the maximum coins obtainable by bursting all balloons.",
+ examples:[{in:"nums = [3,1,5,8]", out:"167"}],
+ constraints:["1 <= nums.length <= 300","0 <= nums[i] <= 100"]},
+{id:52, title:"Longest Consecutive Sequence", diff:"Hard", tags:["Hash Table","Union-Find"],
+ desc:"Given an unsorted array of integers, return the length of the longest run of consecutive integers, achievable in O(n) time (no sorting allowed for full credit).",
+ examples:[{in:"nums = [100,4,200,1,3,2]", out:"4", exp:"The sequence is 1,2,3,4"}],
+ constraints:["0 <= nums.length <= 10^5"]},
+{id:53, title:"Graph Valid Tree", diff:"Hard", tags:["Union-Find","Graph"],
+ desc:"Given n nodes labeled 0 to n-1 and a list of undirected edges, determine whether these edges form a valid tree (connected, and exactly n-1 edges with no cycle).",
+ examples:[{in:"n = 5, edges = [[0,1],[0,2],[0,3],[1,4]]", out:"true"}],
+ constraints:["1 <= n <= 2000","0 <= edges.length <= 5000"]},
+{id:54, title:"Reconstruct Itinerary", diff:"Hard", tags:["Graph","Eulerian Path"],
+ desc:"Given a list of airline tickets as [from,to] pairs, reconstruct the itinerary in lexical order that uses all tickets exactly once, starting from 'JFK' (an Eulerian path problem).",
+ examples:[{in:'tickets = [["MUC","LHR"],["JFK","MUC"],["SFO","SJC"],["LHR","SFO"]]', out:'["JFK","MUC","LHR","SFO","SJC"]'}],
+ constraints:["1 <= tickets.length <= 300","A valid itinerary using all tickets always exists"]},
+{id:55, title:"Critical Connections in a Network", diff:"Hard", tags:["Graph","Tarjan's Bridges"],
+ desc:"Given n servers and a list of connections, find all critical connections (bridges) — edges whose removal would disconnect the network — using Tarjan's low-link algorithm.",
+ examples:[{in:"n=4, connections=[[0,1],[1,2],[2,0],[1,3]]", out:"[[1,3]]"}],
+ constraints:["2 <= n <= 10^5","n-1 <= connections.length <= 10^5"]},
+{id:56, title:"Bus Routes", diff:"Hard", tags:["BFS","Graph"],
+ desc:"Given a list of bus routes, each a sequence of stops, find the minimum number of buses needed to travel from a source stop to a target stop by modeling routes as graph nodes.",
+ examples:[{in:"routes=[[1,2,7],[3,6,7]], source=1, target=6", out:"2"}],
+ constraints:["1 <= routes.length <= 500","1 <= routes[i].length <= 10^5"]},
+{id:57, title:"Network Delay Time", diff:"Hard", tags:["Dijkstra","Graph"],
+ desc:"Given a network of n nodes and weighted directed edges (times), and a source node k, return the time it takes for a signal from k to reach all nodes, or -1 if impossible.",
+ examples:[{in:"times=[[2,1,1],[2,3,1],[3,4,1]], n=4, k=2", out:"2"}],
+ constraints:["1 <= n <= 100","1 <= times.length <= 6000"]},
+{id:58, title:"Cheapest Flights Within K Stops", diff:"Hard", tags:["Graph","Bellman-Ford"],
+ desc:"Given flights with costs between cities, find the cheapest price from src to dst with at most k stops (k+1 edges), using a Bellman-Ford-style relaxation bounded by stops.",
+ examples:[{in:"n=4, flights=[[0,1,100],[1,2,100],[2,0,100],[1,3,600],[2,3,200]], src=0, dst=3, k=1", out:"700"}],
+ constraints:["1 <= n <= 100","0 <= k <= n-1"]},
+{id:59, title:"Split Array Largest Sum", diff:"Hard", tags:["Binary Search","Greedy"],
+ desc:"Given an array of non-negative integers and an integer m, split the array into m non-empty contiguous subarrays to minimize the largest sum among them, using binary search on the answer.",
+ examples:[{in:"nums = [7,2,5,10,8], m = 2", out:"18", exp:"Split into [7,2,5] and [10,8]"}],
+ constraints:["1 <= nums.length <= 1000","1 <= m <= min(50, nums.length)"]},
+{id:60, title:"Maximum Profit in Job Scheduling", diff:"Hard", tags:["DP","Binary Search"],
+ desc:"Given n jobs with start time, end time, and profit, find the maximum profit achievable by scheduling non-overlapping jobs, using DP combined with binary search on end times.",
+ examples:[{in:"startTime=[1,2,3,3], endTime=[3,4,5,6], profit=[50,10,40,70]", out:"120"}],
+ constraints:["1 <= n <= 5*10^4","1 <= profit[i] <= 10^4"]},
+
+// ---------------- ULTRA (61-80) ----------------
+{id:61, title:"Persistent Segment Tree — Kth Smallest in Range", diff:"Ultra", tags:["Persistent Data Structures","Segment Tree"],
+ desc:"Given a static array, answer many offline queries of the form 'what is the kth smallest value in range [l, r]?' by building a persistent segment tree over value ranks, one version per array prefix.",
+ examples:[{in:"arr=[5,2,6,1], query (l=1,r=3,k=2)", out:"5", exp:"Sorted subarray [2,5,6], 2nd smallest is 5"}],
+ constraints:["1 <= n, q <= 10^5","Each query must run in O(log n) after O(n log n) preprocessing"]},
+{id:62, title:"Segment Tree with Lazy Propagation", diff:"Ultra", tags:["Segment Tree","Lazy Propagation"],
+ desc:"Implement a segment tree supporting range-add updates and range-sum queries in O(log n) each, using lazy propagation to defer pushing updates to children.",
+ examples:[{in:"rangeAdd(1,4,5); rangeSum(2,3)", out:"sum reflects the added 5 across the overlapping range"}],
+ constraints:["1 <= n, q <= 2*10^5","Updates and queries are interleaved arbitrarily"]},
+{id:63, title:"2D Fenwick Tree — Range Sum Query 2D Mutable", diff:"Ultra", tags:["Fenwick Tree","2D BIT"],
+ desc:"Given a 2D matrix that supports point updates, implement a 2D Binary Indexed Tree that answers rectangular sum queries [row1,col1]-[row2,col2] in O(log n log m) per operation.",
+ examples:[{in:"update(2,2,+3); sumRegion(1,1,3,3)", out:"reflects the updated matrix sum for that rectangle"}],
+ constraints:["1 <= rows, cols <= 200","At most 10^4 mixed update/query calls"]},
+{id:64, title:"Suffix Array Construction with LCP Array", diff:"Ultra", tags:["Suffix Array","String Processing"],
+ desc:"Given a string, construct its suffix array in O(n log n) using rank-doubling, then build the LCP (longest common prefix) array with Kasai's algorithm in O(n).",
+ examples:[{in:'s = "banana"', out:"suffix array [5,3,1,0,4,2] with corresponding LCP array"}],
+ constraints:["1 <= s.length <= 2*10^5"]},
+{id:65, title:"Suffix Automaton — Count Distinct Substrings", diff:"Ultra", tags:["Suffix Automaton","String Processing"],
+ desc:"Build a suffix automaton for a string in O(n) states/transitions and use it to count the number of distinct substrings, or answer substring-occurrence queries.",
+ examples:[{in:'s = "aab"', out:"5", exp:'Distinct substrings: a, aa, aab, ab, b'}],
+ constraints:["1 <= s.length <= 2*10^5"]},
+{id:66, title:"Heavy-Light Decomposition — Path Queries on Tree", diff:"Ultra", tags:["HLD","Segment Tree","Tree"],
+ desc:"Given a weighted tree with node-update and path-sum (or path-max) queries between arbitrary pairs of nodes, decompose the tree into heavy/light chains so each query runs in O(log^2 n).",
+ examples:[{in:"update node 5's value; query path-sum(3,7)", out:"correct aggregate over the tree path"}],
+ constraints:["1 <= n <= 10^5","Up to 10^5 mixed updates and path queries"]},
+{id:67, title:"Centroid Decomposition — Distance Queries", diff:"Ultra", tags:["Centroid Decomposition","Tree"],
+ desc:"Given a tree, preprocess it using centroid decomposition so you can efficiently count or query pairs of nodes at a given distance, or answer 'is there a node within distance d' queries.",
+ examples:[{in:"tree with 7 nodes; countPairs(distance=2)", out:"number of node pairs exactly 2 apart"}],
+ constraints:["1 <= n <= 10^5"]},
+{id:68, title:"Mo's Algorithm — Offline Range Query", diff:"Ultra", tags:["Mo's Algorithm","Sqrt Decomposition"],
+ desc:"Given an array and a batch of offline range queries (e.g. count of distinct values in [l,r]), answer all of them in O((n+q) sqrt n) using Mo's algorithm by sorting queries into sqrt-sized blocks.",
+ examples:[{in:"arr=[1,2,1,3,2], queries=[(0,2),(1,4)]", out:"[2,3]", exp:"distinct counts per range"}],
+ constraints:["1 <= n, q <= 2*10^5"]},
+{id:69, title:"Convex Hull Trick — DP Optimization", diff:"Ultra", tags:["CHT","DP Optimization"],
+ desc:"Given a DP recurrence of the form dp[i] = min_j (dp[j] + b[j]*a[i]) + c[i], optimize it from O(n^2) to O(n log n) or O(n) using the convex hull trick over the lines formed by each j.",
+ examples:[{in:"cost DP with linear transition terms", out:"optimized DP array computed via a maintained lower hull of lines"}],
+ constraints:["1 <= n <= 2*10^5"]},
+{id:70, title:"Aho-Corasick Automaton — Multi-Pattern Matching", diff:"Ultra", tags:["Aho-Corasick","String Processing"],
+ desc:"Given a dictionary of patterns and a text, build an Aho-Corasick automaton (trie + failure links) to find all occurrences of all patterns in the text in O(text length + total matches).",
+ examples:[{in:'patterns=["he","she","his","hers"], text="ushers"', out:'matches: "she"@1, "he"@2, "hers"@2'}],
+ constraints:["1 <= total pattern length, text length <= 10^5"]},
+{id:71, title:"Z-Function Pattern Matching", diff:"Ultra", tags:["Z-Function","String Processing"],
+ desc:"Compute the Z-function of a string in O(n), and use it to find all occurrences of a pattern p inside a text t by evaluating the Z-array of p+#+t.",
+ examples:[{in:'p="aba", t="ababa"', out:"matches at index 0 and 2"}],
+ constraints:["1 <= p.length + t.length <= 2*10^5"]},
+{id:72, title:"Manacher's Algorithm — Longest Palindromic Substring in O(n)", diff:"Ultra", tags:["Manacher's Algorithm","String"],
+ desc:"Find the longest palindromic substring of a string in linear time using Manacher's algorithm, which tracks palindrome radii while reusing previously computed mirror information.",
+ examples:[{in:'s = "babadada"', out:'"adada"'}],
+ constraints:["1 <= s.length <= 3*10^5"]},
+{id:73, title:"Order Statistic Tree via Treap", diff:"Ultra", tags:["Treap","Balanced BST"],
+ desc:"Implement a randomized balanced BST (treap) supporting insert, delete, and 'find kth smallest / rank of value' in expected O(log n), by maintaining subtree sizes alongside heap priorities.",
+ examples:[{in:"insert 5,2,8,1; kth(2)", out:"2", exp:"2nd smallest element is 2"}],
+ constraints:["1 <= number of operations <= 2*10^5"]},
+{id:74, title:"Link-Cut Tree — Dynamic Connectivity", diff:"Ultra", tags:["Link-Cut Tree","Dynamic Trees"],
+ desc:"Implement a link-cut tree to maintain a dynamic forest supporting link(u,v), cut(u,v), and path-aggregate queries (e.g. path max) in amortized O(log n) using splay-tree-based preferred paths.",
+ examples:[{in:"link(1,2); link(2,3); pathMax(1,3)", out:"max value along the path 1-2-3"}],
+ constraints:["1 <= n, operations <= 10^5"]},
+{id:75, title:"Max Flow — Dinic's Algorithm", diff:"Ultra", tags:["Max Flow","Dinic's"],
+ desc:"Given a flow network with a source and sink, compute the maximum flow using Dinic's algorithm (BFS level graph + blocking flow via DFS), achieving O(V^2 E) in general graphs.",
+ examples:[{in:"network with 6 nodes and capacitated edges", out:"the max flow value from source to sink"}],
+ constraints:["1 <= V <= 500","1 <= E <= 10^4"]},
+{id:76, title:"Min Cost Max Flow", diff:"Ultra", tags:["MCMF","Flow Networks"],
+ desc:"Given a flow network where each edge has both a capacity and a cost per unit flow, find the maximum flow that minimizes total cost, using successive shortest augmenting paths (SPFA/Bellman-Ford + Dijkstra with potentials).",
+ examples:[{in:"network with cost-capacitated edges", out:"(max flow, min cost) pair"}],
+ constraints:["1 <= V <= 300","Costs may be negative but no negative cycles"]},
+{id:77, title:"Hopcroft-Karp Bipartite Matching", diff:"Ultra", tags:["Bipartite Matching","Graph"],
+ desc:"Given a bipartite graph, find the maximum matching using the Hopcroft-Karp algorithm, which augments along multiple shortest augmenting paths per phase for O(E sqrt(V)) total time.",
+ examples:[{in:"left set {1,2,3}, right set {A,B,C} with edges", out:"the maximum matching size and pairing"}],
+ constraints:["1 <= |L|, |R| <= 5000"]},
+{id:78, title:"Tarjan's Strongly Connected Components", diff:"Ultra", tags:["Tarjan's SCC","Graph"],
+ desc:"Given a directed graph, partition it into strongly connected components in a single DFS pass using Tarjan's low-link values and an explicit stack.",
+ examples:[{in:"graph with cycles among {1,2,3} and {4,5}", out:"SCCs: [[1,2,3],[4,5]] (order may vary)"}],
+ constraints:["1 <= V <= 10^5","0 <= E <= 2*10^5"]},
+{id:79, title:"Articulation Points and Bridges", diff:"Ultra", tags:["Graph","DFS Low-Link"],
+ desc:"Given an undirected graph, find all articulation points (cut vertices) and bridges (cut edges) — the elements whose removal increases the number of connected components — using DFS discovery/low-link times.",
+ examples:[{in:"graph forming a chain with a side branch", out:"list of articulation points and bridge edges"}],
+ constraints:["1 <= V <= 10^5"]},
+{id:80, title:"2-SAT Solver", diff:"Ultra", tags:["2-SAT","SCC","Graph"],
+ desc:"Given a 2-CNF boolean formula (clauses of exactly two literals), determine if it is satisfiable and produce a satisfying assignment if one exists, by building an implication graph and using SCC decomposition.",
+ examples:[{in:"clauses: (x1 OR x2), (NOT x1 OR x3), (NOT x2 OR NOT x3)", out:"a satisfying assignment or 'unsatisfiable'"}],
+ constraints:["1 <= number of variables, clauses <= 10^5"]},
+
+// ---------------- EXTREME (81-100) ----------------
+{id:81, title:"FFT-Based Polynomial Multiplication", diff:"Extreme", tags:["FFT","Divide & Conquer","Numerical"],
+ desc:"Given two polynomials represented by coefficient arrays, compute their product in O(n log n) using the Fast Fourier Transform to convert to point-value form, multiply pointwise, then interpolate back.",
+ examples:[{in:"A(x)=1+2x, B(x)=3+4x", out:"3+10x+8x^2"}],
+ constraints:["1 <= degree <= 10^6","Numerical precision must be handled carefully with floating-point FFT"]},
+{id:82, title:"Number Theoretic Transform — Big Integer Multiplication", diff:"Extreme", tags:["NTT","Modular Arithmetic"],
+ desc:"Multiply two very large integers (represented as digit arrays) using the Number Theoretic Transform over a prime modulus with a suitable primitive root, avoiding floating-point FFT precision issues.",
+ examples:[{in:"two 10^5-digit numbers", out:"their exact product, computed in O(n log n)"}],
+ constraints:["1 <= number of digits <= 10^6","Must use exact modular arithmetic, no floating point"]},
+{id:83, title:"Matrix Exponentiation for Linear Recurrences", diff:"Extreme", tags:["Matrix Exponentiation","Number Theory"],
+ desc:"Given a linear recurrence relation of fixed order and a huge index n (up to 10^18), compute the nth term modulo a prime using matrix exponentiation by squaring in O(k^3 log n).",
+ examples:[{in:"Fibonacci-like recurrence, n = 10^18", out:"nth term mod 10^9+7"}],
+ constraints:["1 <= recurrence order k <= 100","1 <= n <= 10^18"]},
+{id:84, title:"Chinese Remainder Theorem — System of Congruences", diff:"Extreme", tags:["Number Theory","CRT"],
+ desc:"Given a system of congruences x ≡ a_i (mod m_i) where the m_i are not necessarily coprime, determine if a solution exists and compute the unique solution modulo lcm(m_i) using the generalized CRT.",
+ examples:[{in:"x ≡ 2 (mod 3), x ≡ 3 (mod 5), x ≡ 2 (mod 7)", out:"x ≡ 23 (mod 105)"}],
+ constraints:["1 <= number of congruences <= 10^5","Moduli may share common factors"]},
+{id:85, title:"Miller-Rabin Primality Test with Pollard's Rho Factorization", diff:"Extreme", tags:["Number Theory","Randomized Algorithms"],
+ desc:"Implement deterministic Miller-Rabin primality testing for 64-bit integers, and combine it with Pollard's Rho to fully factorize large composite numbers efficiently.",
+ examples:[{in:"n = 8051", out:"prime factors 83 and 97"}],
+ constraints:["1 <= n <= 10^18","Must handle numbers too large to trial-divide"]},
+{id:86, title:"Burrows-Wheeler Transform with FM-Index Search", diff:"Extreme", tags:["BWT","FM-Index","String Processing"],
+ desc:"Construct the Burrows-Wheeler Transform of a string via its suffix array, build an FM-Index (rank/select over the BWT plus checkpointing), and use backward search to count pattern occurrences without decompressing the text.",
+ examples:[{in:'text="banana$", pattern="ana"', out:"count = 2, with occurrence positions recoverable"}],
+ constraints:["1 <= text.length <= 10^6","Pattern queries must run in O(pattern length)"]},
+{id:87, title:"Wavelet Tree — Range Rank and Select Queries", diff:"Extreme", tags:["Wavelet Tree","Succinct Data Structures"],
+ desc:"Build a wavelet tree over an integer array to answer, in O(log(max value)) per query: the kth smallest value in a range, the count of values ≤ x in a range, and the position of the kth occurrence of a value.",
+ examples:[{in:"arr built into wavelet tree; rangeKth(2,6,3)", out:"the 3rd smallest value in that subrange"}],
+ constraints:["1 <= n <= 10^5","Values fit within a bounded alphabet size"]},
+{id:88, title:"Li Chao Tree — Dynamic Line/Segment Optimization", diff:"Extreme", tags:["Li Chao Tree","DP Optimization"],
+ desc:"Maintain a dynamic set of lines (or line segments) and answer 'maximum/minimum value at x' queries in O(log C) per insertion/query using a Li Chao tree over the coordinate domain, for DP transitions that aren't monotonic enough for the convex hull trick.",
+ examples:[{in:"insert lines y=2x+1, y=-x+5; query at x=3", out:"max(7, 2) = 7"}],
+ constraints:["1 <= number of lines/queries <= 2*10^5"]},
+{id:89, title:"Simplex Algorithm — Linear Programming", diff:"Extreme", tags:["Linear Programming","Simplex"],
+ desc:"Given a linear program in standard form (maximize c^T x subject to Ax <= b, x >= 0), implement the simplex method with Bland's rule to avoid cycling, returning the optimal solution or reporting unboundedness/infeasibility.",
+ examples:[{in:"maximize 3x+2y subject to x+y<=4, x+3y<=6, x,y>=0", out:"optimal value 10 at x=3, y=1"}],
+ constraints:["1 <= variables, constraints <= 200"]},
+{id:90, title:"Min Cost Flow with Lower Bounds (Circulation)", diff:"Extreme", tags:["Flow Networks","Circulation"],
+ desc:"Given a flow network where each edge has both a lower and upper capacity bound and a cost, determine a feasible circulation (or feasible flow with given supplies/demands) of minimum cost by reducing to a standard min-cost-flow instance with a super source/sink.",
+ examples:[{in:"network with per-edge [lower,upper,cost] triples", out:"a feasible min-cost circulation, or 'infeasible'"}],
+ constraints:["1 <= V <= 300","Lower bounds may be nonzero on any edge"]},
+{id:91, title:"General Graph Matching (Blossom Algorithm)", diff:"Extreme", tags:["Blossom Algorithm","Graph Matching"],
+ desc:"Given a general (not necessarily bipartite) undirected graph, find a maximum matching using Edmonds' Blossom algorithm, which contracts odd-length cycles ('blossoms') encountered during augmenting-path search.",
+ examples:[{in:"a 5-cycle plus a pendant edge", out:"the maximum matching size and the matched pairs"}],
+ constraints:["1 <= V <= 1000","Graph may contain odd cycles that block naive bipartite techniques"]},
+{id:92, title:"Steiner Tree Problem (DP over Subsets)", diff:"Extreme", tags:["Steiner Tree","Bitmask DP"],
+ desc:"Given a weighted graph and a subset of k required terminal nodes, find the minimum-weight connected subgraph (tree) spanning all terminals, using the classic O(3^k * V + 2^k * (E + V log V)) subset-DP with Dijkstra relaxation.",
+ examples:[{in:"graph with terminals {A,C,E}", out:"minimum total edge weight connecting all three"}],
+ constraints:["1 <= k (terminals) <= 12","1 <= V <= 100"]},
+{id:93, title:"Traveling Salesman via Held-Karp", diff:"Extreme", tags:["Bitmask DP","TSP"],
+ desc:"Given a complete weighted graph on n cities, find the minimum-cost Hamiltonian cycle visiting every city exactly once using the Held-Karp dynamic programming over subsets, exact in O(2^n * n^2).",
+ examples:[{in:"4-city distance matrix", out:"the minimum tour cost and an optimal visiting order"}],
+ constraints:["1 <= n <= 20"]},
+{id:94, title:"Maximum Weight Independent Set on Trees with Group Constraints", diff:"Extreme", tags:["Tree DP","Constrained Optimization"],
+ desc:"Given a weighted tree where nodes are partitioned into groups with a cap on how many nodes per group may be selected, find a maximum-weight independent set (no two adjacent nodes both selected) respecting the group caps, via tree DP with per-node knapsack merging.",
+ examples:[{in:"tree of 8 nodes in 3 groups, each capped at 2 selections", out:"the optimal weight and selected node set"}],
+ constraints:["1 <= n <= 2000","1 <= groups <= n"]},
+{id:95, title:"Persistent Union-Find with Rollback", diff:"Extreme", tags:["Union-Find","Persistence","Offline Algorithms"],
+ desc:"Implement a union-find structure supporting union, find, and rollback to any earlier version (undo a sequence of unions) without path compression breaking persistence, typically via union-by-rank plus an undo stack, used for offline dynamic connectivity over time.",
+ examples:[{in:"union(1,2); union(3,4); snapshot; union(2,3); rollback(snapshot)", out:"connectivity reverts to the state at the snapshot"}],
+ constraints:["1 <= n, operations <= 2*10^5"]},
+{id:96, title:"Sqrt Decomposition — Range Frequency with Updates", diff:"Extreme", tags:["Sqrt Decomposition"],
+ desc:"Given an array supporting point updates and queries of 'how many times does value v appear in range [l,r]', design a sqrt-decomposition structure (per-block frequency maps) answering each operation in O(sqrt n).",
+ examples:[{in:"update(3, newVal=7); freq(0,9,val=7)", out:"count reflecting the update"}],
+ constraints:["1 <= n, q <= 2*10^5"]},
+{id:97, title:"Suffix Tree Construction (Ukkonen's Algorithm)", diff:"Extreme", tags:["Suffix Tree","Ukkonen's Algorithm"],
+ desc:"Build a suffix tree for a string in O(n) time using Ukkonen's online algorithm with suffix links, active point tracking, and implicit-to-explicit extension rules, then use it for arbitrary substring/repeat queries.",
+ examples:[{in:'s = "banana$"', out:"a fully built suffix tree usable for O(m) substring search of any pattern of length m"}],
+ constraints:["1 <= s.length <= 10^6"]},
+{id:98, title:"Implicit Treap — Split/Merge Array Operations", diff:"Extreme", tags:["Treap","Implicit Key BBST"],
+ desc:"Implement an implicit-key treap (keyed by in-order position, not value) supporting split, merge, range reverse (lazy flip), and range sum in O(log n) amortized, enabling arbitrary array cut/paste/reverse operations.",
+ examples:[{in:"array [1..10]; reverse(3,7); insertAt(5, block)", out:"resulting array after the sequence of structural edits"}],
+ constraints:["1 <= n, operations <= 2*10^5"]},
+{id:99, title:"Parallel Binary Search — Offline Query Optimization", diff:"Extreme", tags:["Parallel Binary Search","Offline Algorithms"],
+ desc:"Given a batch of queries each requiring an independent binary search over a monotonic predicate that is expensive to evaluate per candidate, batch all queries together and binary-search them simultaneously, applying updates incrementally (e.g. via a Fenwick tree) so total work is O((n+q) log n log V) instead of O(q * n log V).",
+ examples:[{in:"q connectivity-threshold queries over an evolving graph", out:"each query's answer resolved in one shared pass"}],
+ constraints:["1 <= n, q <= 2*10^5"]},
+{id:100, title:"Divide and Conquer DP Optimization (Knuth's Optimization)", diff:"Extreme", tags:["DP Optimization","Knuth's Optimization"],
+ desc:"Given a DP of the form dp[i][j] = min over k in [i,j) of dp[i][k] + dp[k+1][j] + cost(i,j), where the optimal split point opt(i,j) is monotonic in i and j (quadrangle inequality holds), reduce the naive O(n^3) computation to O(n^2) using Knuth's optimization or divide-and-conquer optimization.",
+ examples:[{in:"optimal binary search tree construction over n keys", out:"minimum total weighted search cost, computed in O(n^2)"}],
+ constraints:["1 <= n <= 5000","cost(i,j) must satisfy the quadrangle inequality for the optimization to apply"]},
+];
+
+// ---------- render logic ----------
+const listEl = document.getElementById('list');
+const detailEl = document.getElementById('detail');
+const searchEl = document.getElementById('search');
+const tabsEl = document.getElementById('tabs');
+let activeTab = 'all';
+let selectedId = 1;
+const solved = new Set();
+
+function matchesSearch(p, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  return p.title.toLowerCase().includes(q) || p.tags.some(t=>t.toLowerCase().includes(q)) || String(p.id).includes(q);
+}
+
+function renderList(){
+  const q = searchEl.value.trim();
+  listEl.innerHTML = '';
+  const filtered = PROBLEMS.filter(p => (activeTab==='all' || p.diff===activeTab) && matchesSearch(p,q));
+  if(filtered.length===0){
+    listEl.innerHTML = '<div class="empty">no matches — try clearing grep filter</div>';
+    return;
+  }
+  filtered.forEach(p=>{
+    const row = document.createElement('div');
+    row.className = 'logitem' + (p.id===selectedId?' selected':'') + (solved.has(p.id)?' done':'');
+    row.innerHTML = `
+      <div class="chk ${solved.has(p.id)?'done':''}" data-id="${p.id}"></div>
+      <div class="num">${String(p.id).padStart(3,'0')}</div>
+      <div class="sev ${p.diff}">${SEV[p.diff]}</div>
+      <div class="ttl">${p.title}</div>
+    `;
+    row.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('chk')) return;
+      selectedId = p.id;
+      renderList();
+      renderDetail(p);
+    });
+    row.querySelector('.chk').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(solved.has(p.id)) solved.delete(p.id); else solved.add(p.id);
+      renderList();
+      updateCounts();
+    });
+    listEl.appendChild(row);
+  });
+}
+
+function renderDetail(p){
+  const exHtml = p.examples.map((ex,i)=>`
+    <div class="ex">
+      <div class="row"><div class="k">Input</div><div class="v">${ex.in}</div></div>
+      <div class="row"><div class="k">Output</div><div class="v">${ex.out}</div></div>
+      ${ex.exp ? `<div class="row"><div class="k">Explain</div><div class="v exp">${ex.exp}</div></div>` : ''}
+    </div>
+  `).join('');
+  const consHtml = p.constraints.map(c=>`<li>${c}</li>`).join('');
+  detailEl.innerHTML = `
+    <div class="hd">
+      <h1>${String(p.id).padStart(3,'0')}. ${p.title}</h1>
+      <span class="badge ${p.diff}">${SEV[p.diff]} · ${p.diff}</span>
+    </div>
+    <div class="idline">problem_id=${p.id} · severity=${SEV[p.diff]} · tier=${p.diff}</div>
+    <div class="taglist">${p.tags.map(t=>`<span class="chip">${t}</span>`).join('')}</div>
+    <div class="sec-h">description</div>
+    <div class="desc">${p.desc}</div>
+    <div class="sec-h">examples</div>
+    ${exHtml}
+    <div class="sec-h">constraints</div>
+    <ul class="cons">${consHtml}</ul>
+    <div class="footline">$ status: ${solved.has(p.id) ? 'SOLVED ✓' : 'pending — click the checkbox in the log to mark solved'}</div>
+  `;
+}
+
+function updateCounts(){
+  document.getElementById('cnt-solved').textContent = solved.size;
+}
+
+tabsEl.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    tabsEl.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    activeTab = t.dataset.t;
+    renderList();
+  });
+});
+searchEl.addEventListener('input', renderList);
+
+renderList();
+renderDetail(PROBLEMS[0]);
+updateCounts();
+</script>
+</body>
+</html>

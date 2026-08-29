@@ -46,12 +46,57 @@ class Palandrome{
     }
 }
 
+class Product{
+    public static int check(int n){
+        if (n%10==0){
+            return 1;
+        }
+        else{
+            return (n%10)*check(n/10);
+        }
+    }
+}
+
+class Euclid{
+    public static int check(int num1 , int num2){
+        if(num1<num2){
+            num1=num1+num2;
+            num2=num1-num2;
+            num1=num1-num2;
+        }
+        if(num2==0){
+            return num1;
+        }
+        else{
+            return check(num1%num2 , num2);
+        }
+
+
+    }
+}
+
+class Binary{
+    public static String check(int num , int base){
+        if(num<base){
+            return number;
+        }
+        else{
+            return 
+        }
+    }
+}
+
+
+
 
 public class MainLevel2{
     public static void main(String args[]){
         // System.out.print(Count.output(807465));
         // System.out.print(Reverse.output(807465));
-        System.out.print(Palandrome.output(11));
+        // System.out.print(Palandrome.output(11));
+        // System.out.print(Product.check(3331));
+        System.out.print(Euclid.check(500,30));
+
 
 
     }
