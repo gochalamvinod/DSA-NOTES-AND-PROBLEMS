@@ -1,0 +1,11 @@
+STEP-1
+---------------
+MINIMUM TRUE CONDITION
+
+STEP - 2 
+------------------
+TRY APPROCHING TOWARD THE STEP-1
+
+STEP - 3
+---------------------
+CONDITIONS DIAGRAM
