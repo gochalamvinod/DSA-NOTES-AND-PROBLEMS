@@ -3,6 +3,7 @@ import java.util.*;
 /**
  * TYPES OF TWO POINTERS — Complete Reference
  * Each inner class demonstrates one subtype with a concrete problem + solution.
+ * Includes Time and Space Complexity for every method.
  */
 public class TwoPointers {
 
@@ -13,6 +14,9 @@ public class TwoPointers {
     /**
      * 1a. CONVERGING — both move inward toward each other
      * Problem: Two Sum II (sorted array) — find pair that sums to target
+     *
+     * Time:  O(n) — single pass, each pointer moves at most n steps total
+     * Space: O(1) — no extra data structures
      */
     static class OppositeEndsConverging {
         // [1, 2, 7, 11, 15], target=9 → indices [1,2] (1-based)
@@ -20,7 +24,7 @@ public class TwoPointers {
             int left = 0, right = nums.length - 1;
             while (left < right) {
                 int sum = nums[left] + nums[right];
-                if (sum == target)  return new int[]{left + 1, right + 1};
+                if (sum == target)     return new int[]{left + 1, right + 1};
                 else if (sum < target) left++;
                 else                   right--;
             }
@@ -35,10 +39,16 @@ public class TwoPointers {
 
     /**
      * 1b. ONE FIXED, ONE MOVING — fix one end, slide the other
-     * Problem: Valid Palindrome — check if string reads same both ways
+     *
+     * isPalindrome:
+     *   Time:  O(n) — each char checked once
+     *   Space: O(1)
+     *
+     * maxWater:
+     *   Time:  O(n) — single left-to-right pass
+     *   Space: O(1)
      */
     static class OppositeEndsOneFixed {
-        // "racecar" → true, "hello" → false
         static boolean isPalindrome(String s) {
             int left = 0, right = s.length() - 1;
             while (left < right) {
@@ -49,21 +59,20 @@ public class TwoPointers {
             return true;
         }
 
-        // Problem variant: Container With Most Water — fix whichever side is shorter
         static int maxWater(int[] height) {
             int left = 0, right = height.length - 1, max = 0;
             while (left < right) {
                 int water = Math.min(height[left], height[right]) * (right - left);
                 max = Math.max(max, water);
-                if (height[left] <= height[right]) left++;  // fix taller side, move shorter
+                if (height[left] <= height[right]) left++;   // fix taller, move shorter
                 else                                right--;
             }
             return max;
         }
 
         public static void main(String[] args) {
-            System.out.println(isPalindrome("racecar"));                    // true
-            System.out.println(maxWater(new int[]{1,8,6,2,5,4,8,3,7}));    // 49
+            System.out.println(isPalindrome("racecar"));                   // true
+            System.out.println(maxWater(new int[]{1,8,6,2,5,4,8,3,7}));   // 49
         }
     }
 
@@ -75,6 +84,9 @@ public class TwoPointers {
     /**
      * 2a. FIXED SPEED GAP — slow+1, fast+k (constant gap between them)
      * Problem: Kth Node from End of Linked List
+     *
+     * Time:  O(n) — fast travels full list; slow travels (n-k) steps
+     * Space: O(1)
      */
     static class SameDirectionFixedGap {
         static class ListNode {
@@ -82,10 +94,9 @@ public class TwoPointers {
             ListNode(int val) { this.val = val; }
         }
 
-        // advance fast by k steps first, then both move together
         static ListNode kthFromEnd(ListNode head, int k) {
             ListNode slow = head, fast = head;
-            for (int i = 0; i < k; i++) fast = fast.next; // create gap of k
+            for (int i = 0; i < k; i++) fast = fast.next;   // create gap of k
             while (fast != null) {
                 slow = slow.next;
                 fast = fast.next;
@@ -105,7 +116,10 @@ public class TwoPointers {
 
     /**
      * 2b. VARIABLE SPEED — fast moves 2x slow's speed
-     * Problem: Middle of Linked List — slow+1 step, fast+2 steps
+     * Problem: Middle of Linked List
+     *
+     * Time:  O(n) — fast reaches end in n/2 iterations
+     * Space: O(1)
      */
     static class SameDirectionVariableSpeed {
         static class ListNode {
@@ -119,7 +133,7 @@ public class TwoPointers {
                 slow = slow.next;       // +1
                 fast = fast.next.next;  // +2
             }
-            return slow; // slow is at middle
+            return slow;
         }
 
         public static void main(String[] args) {
@@ -140,15 +154,17 @@ public class TwoPointers {
     /**
      * 3a. FIXED SIZE WINDOW — window size stays constant
      * Problem: Maximum sum of subarray of size k
+     *
+     * Time:  O(n) — one pass after O(k) setup
+     * Space: O(1)
      */
     static class SlidingWindowFixed {
-        // [2,1,5,1,3,2], k=3 → 9 (5+1+3)
         static int maxSumFixedWindow(int[] nums, int k) {
             int windowSum = 0, maxSum = 0;
-            for (int i = 0; i < k; i++) windowSum += nums[i]; // first window
+            for (int i = 0; i < k; i++) windowSum += nums[i];   // first window
             maxSum = windowSum;
             for (int right = k; right < nums.length; right++) {
-                windowSum += nums[right] - nums[right - k];    // slide: add right, drop left
+                windowSum += nums[right] - nums[right - k];      // slide: +right, -left
                 maxSum = Math.max(maxSum, windowSum);
             }
             return maxSum;
@@ -162,15 +178,17 @@ public class TwoPointers {
     /**
      * 3b. VARIABLE SIZE — shrink left on violation
      * Problem: Longest substring without repeating characters
+     *
+     * Time:  O(n) — right moves n steps; left moves at most n steps total
+     * Space: O(k) — k = size of charset (at most 26 for lowercase, 128 for ASCII)
      */
     static class SlidingWindowVariableShrink {
-        // "abcabcbb" → 3 ("abc")
         static int lengthOfLongestSubstring(String s) {
             Map<Character, Integer> freq = new HashMap<>();
             int left = 0, maxLen = 0;
             for (int right = 0; right < s.length(); right++) {
-                freq.merge(s.charAt(right), 1, Integer::sum);  // expand right
-                while (freq.get(s.charAt(right)) > 1) {        // violation: shrink left
+                freq.merge(s.charAt(right), 1, Integer::sum);    // expand right
+                while (freq.get(s.charAt(right)) > 1) {          // violation → shrink
                     freq.merge(s.charAt(left), -1, Integer::sum);
                     if (freq.get(s.charAt(left)) == 0) freq.remove(s.charAt(left));
                     left++;
@@ -188,14 +206,16 @@ public class TwoPointers {
     /**
      * 3c. VARIABLE SIZE — expand until condition met
      * Problem: Minimum size subarray sum ≥ target
+     *
+     * Time:  O(n) — right and left each move at most n steps
+     * Space: O(1)
      */
     static class SlidingWindowVariableExpand {
-        // [2,3,1,2,4,3], target=7 → 2 (subarray [4,3])
         static int minSubArrayLen(int target, int[] nums) {
             int left = 0, sum = 0, minLen = Integer.MAX_VALUE;
             for (int right = 0; right < nums.length; right++) {
-                sum += nums[right];                              // grow
-                while (sum >= target) {                          // condition met → try shrinking
+                sum += nums[right];                               // grow
+                while (sum >= target) {                           // met → shrink
                     minLen = Math.min(minLen, right - left + 1);
                     sum -= nums[left++];
                 }
@@ -215,15 +235,17 @@ public class TwoPointers {
 
     /**
      * 4a. TWO SEPARATE ARRAYS — one pointer per array, advance smaller
-     * Problem: Merge two sorted arrays into one sorted array
+     * Problem: Merge two sorted arrays
+     *
+     * Time:  O(m + n) — each element visited once
+     * Space: O(m + n) — result array
      */
     static class MergeTwoArrays {
-        // [1,3,5] + [2,4,6] → [1,2,3,4,5,6]
         static int[] mergeSorted(int[] a, int[] b) {
             int i = 0, j = 0, k = 0;
             int[] result = new int[a.length + b.length];
             while (i < a.length && j < b.length) {
-                result[k++] = (a[i] <= b[j]) ? a[i++] : b[j++]; // advance smaller
+                result[k++] = (a[i] <= b[j]) ? a[i++] : b[j++];
             }
             while (i < a.length) result[k++] = a[i++];
             while (j < b.length) result[k++] = b[j++];
@@ -239,16 +261,18 @@ public class TwoPointers {
 
     /**
      * 4b. SAME ARRAY IN-PLACE — merge from END to avoid overwriting
-     * Problem: Merge Sorted Array (nums1 has extra space at end)
+     * Problem: Merge Sorted Array (LeetCode 88)
+     *
+     * Time:  O(m + n) — each element placed exactly once
+     * Space: O(1) — in-place, no extra array
      */
     static class MergeInPlace {
-        // nums1=[1,2,3,0,0,0] m=3, nums2=[2,5,6] n=3 → [1,2,2,3,5,6]
         static void merge(int[] nums1, int m, int[] nums2, int n) {
-            int i = m - 1, j = n - 1, k = m + n - 1; // all three start from the end
+            int i = m - 1, j = n - 1, k = m + n - 1;   // all start from end
             while (i >= 0 && j >= 0) {
                 nums1[k--] = (nums1[i] >= nums2[j]) ? nums1[i--] : nums2[j--];
             }
-            while (j >= 0) nums1[k--] = nums2[j--]; // only need to drain nums2
+            while (j >= 0) nums1[k--] = nums2[j--];     // drain remaining nums2
         }
 
         public static void main(String[] args) {
@@ -265,10 +289,17 @@ public class TwoPointers {
 
     /**
      * 5a. SINGLE PIVOT — one boundary pointer, one scan pointer
-     * Problem: QuickSort partition (Lomuto scheme)
+     * Problem: QuickSort (Lomuto scheme)
+     *
+     * partition:
+     *   Time:  O(n) per call
+     *   Space: O(1)
+     *
+     * quickSort:
+     *   Time:  O(n log n) average, O(n²) worst case (sorted input, bad pivot)
+     *   Space: O(log n) avg recursion stack, O(n) worst
      */
     static class PartitionSinglePivot {
-        // boundary = last valid ≤ pivot, scan = current element being checked
         static int partition(int[] arr, int lo, int hi) {
             int pivot = arr[hi];
             int boundary = lo - 1;
@@ -299,7 +330,12 @@ public class TwoPointers {
 
     /**
      * 5b. TWO PIVOT — two boundary pointers, one scan pointer
-     * Problem: Dual-pivot sort (elements bucketed around two pivots)
+     * Problem: Dual-pivot partition
+     *
+     * Time:  O(n) for one partition pass
+     * Space: O(1)
+     *
+     * Note: Java's Arrays.sort() uses dual-pivot quicksort internally
      */
     static class PartitionTwoPivot {
         static void twoPivotSort(int[] arr) {
@@ -313,7 +349,7 @@ public class TwoPointers {
                     left++; scan++;
                 } else if (arr[scan] > pivot2) {
                     int t = arr[scan]; arr[scan] = arr[right]; arr[right] = t;
-                    right--;              // don't advance scan — unknown what came from right
+                    right--;           // unknown what came from right, don't advance scan
                 } else {
                     scan++;
                 }
@@ -330,19 +366,21 @@ public class TwoPointers {
     /**
      * 5c. THREE-WAY / DUTCH FLAG — lo, mid, hi — three strict regions
      * Problem: Sort array of 0s, 1s, 2s in one pass
+     *
+     * Time:  O(n) — each element touched at most twice (once by mid, once by swap)
+     * Space: O(1)
      */
     static class PartitionThreeWay {
         // lo = right edge of 0s, mid = current, hi = left edge of 2s
-        // [2,0,2,1,1,0] → [0,0,1,1,2,2]
         static void sortColors(int[] nums) {
             int lo = 0, mid = 0, hi = nums.length - 1;
             while (mid <= hi) {
                 if (nums[mid] == 0) {
                     int t = nums[lo]; nums[lo] = nums[mid]; nums[mid] = t;
-                    lo++; mid++;        // element from lo was 1 (safe), advance both
+                    lo++; mid++;       // lo always holds 1 before swap, safe to advance both
                 } else if (nums[mid] == 2) {
                     int t = nums[mid]; nums[mid] = nums[hi]; nums[hi] = t;
-                    hi--;               // unknown what came from hi, don't advance mid
+                    hi--;              // unknown what came from hi, don't advance mid
                 } else {
                     mid++;
                 }
@@ -362,8 +400,11 @@ public class TwoPointers {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * 6a. CYCLE DETECTION ONLY — slow+1, fast+2 — meet inside cycle
-     * Problem: Linked List Cycle (yes/no)
+     * 6a. CYCLE DETECTION ONLY — slow+1, fast+2
+     * Problem: Does a cycle exist? (yes/no)
+     *
+     * Time:  O(n) — if cycle exists, fast laps slow within one full cycle length
+     * Space: O(1)
      */
     static class FloydCycleDetect {
         static class ListNode {
@@ -386,17 +427,22 @@ public class TwoPointers {
             head.next = new ListNode(2);
             head.next.next = new ListNode(0);
             head.next.next.next = new ListNode(-4);
-            head.next.next.next.next = head.next; // cycle: -4 → 2
+            head.next.next.next.next = head.next;   // cycle: -4 → 2
             System.out.println(hasCycle(head)); // true
         }
     }
 
     /**
-     * 6b. CYCLE + ENTRY POINT — after meeting, reset one to head, both move +1
-     * Problem: Linked List Cycle II — find where the cycle begins
+     * 6b. CYCLE + ENTRY POINT — after meeting, reset one to head, both +1
+     * Problem: Find the node where the cycle begins
+     *
+     * Time:  O(n) — phase1 O(n) + phase2 O(n)
+     * Space: O(1)
      *
      * Math: dist(head→entry) == dist(meetPoint→entry)
-     *       so reset one pointer to head; both reach entry at same time.
+     *       Proof: let F = dist to entry, C = cycle length, k = meeting offset in cycle
+     *       slow travelled F+k, fast travelled F+k+C → 2(F+k) = F+k+C → F = C-k
+     *       C-k = remaining steps from meet point back to entry ✓
      */
     static class FloydCycleEntryPoint {
         static class ListNode {
@@ -410,12 +456,12 @@ public class TwoPointers {
                 slow = slow.next;
                 fast = fast.next.next;
                 if (slow == fast) {
-                    slow = head;             // reset to head
+                    slow = head;              // phase 2: reset slow to head
                     while (slow != fast) {
                         slow = slow.next;
-                        fast = fast.next;    // both +1
+                        fast = fast.next;     // both +1
                     }
-                    return slow;             // cycle entry
+                    return slow;              // cycle entry node
                 }
             }
             return null;
@@ -426,7 +472,7 @@ public class TwoPointers {
             head.next = new ListNode(2);
             head.next.next = new ListNode(0);
             head.next.next.next = new ListNode(-4);
-            head.next.next.next.next = head.next; // entry = node(2)
+            head.next.next.next.next = head.next;   // entry = node(2)
             ListNode entry = detectCycleEntry(head);
             System.out.println(entry != null ? entry.val : "no cycle"); // 2
         }
@@ -435,7 +481,10 @@ public class TwoPointers {
     /**
      * 6c. DUPLICATE IN ARRAY — treat array as linked list, same Floyd logic
      * Problem: Find the Duplicate Number (n+1 ints in range [1..n])
-     * index → value acts as "next pointer"; duplicate value = cycle entry
+     *          index → value acts as "next pointer"; duplicate = cycle entry
+     *
+     * Time:  O(n)
+     * Space: O(1) — no extra array, no sorting, no modifying input
      */
     static class FloydDuplicateInArray {
         // [1,3,4,2,2] → 2
@@ -465,7 +514,7 @@ public class TwoPointers {
 
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RUNNER
+    // RUNNER — call all mains
     // ─────────────────────────────────────────────────────────────────────────
     public static void main(String[] args) throws Exception {
         System.out.println("=== 1a. Opposite Ends — Converging ===");
