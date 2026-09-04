@@ -95,14 +95,54 @@ class UnBoundedKnapSack01_Memorization{
 
 /*=============================================================*/
 
+class FractionalKnapSack{         //(GREEDY APPROACH)
+    static class Helper{          //My own dataType
+        int weight;
+        int value;
+        double ratio;
+        Helper(int weight ,int value){
+            this.weight = weight;
+            this.value = value;
+            this.ratio =  (double) value/(double)weight;   //filtering based on highest values;
+        }
+    }
+    public static double check(int[] arr1 , int[] arr2 , int weight , int length)
+    {
+        List<Helper> items = new ArrayList<>();
+        for(int i = 0 ; i<length ;i++){
+            items.add(new Helper(arr1[i],arr2[i]));
+        }
+        items.sort((a, b) -> Double.compare(b.ratio, a.ratio));    // Sorting by ratio decreasing 
+    
+        double storage_value = 0.0;
+        int remaining_capacity = weight;
+        for(Helper item : items){
+            if(remaining_capacity<=0){
+                break;
+            }
+            if(remaining_capacity>=item.weight){
+                storage_value+=item.value;
+                remaining_capacity-=item.weight;
+            }
+            else{
+                storage_value+=(double)remaining_capacity/(double)item.weight*(double)item.value;
+                break;
+            }
+        }
+        return storage_value;
+    }
+}
+/*=============================================================*/
+
 public class Main{
     public static void main(String args[]){
         int[] weight = new int[] {5,7,3,1,2,8,6};
         int[] values = new int[] {1,2,3,5,6,7,8};
-        int Weight = 600;
+        int Weight = 15;
         System.out.println(KnapSack01.check(weight , values , Weight , weight.length));
         System.out.println(UnBoundedKnapSack01.check(weight , values , Weight , weight.length));
         System.out.println(KnapSack01_Memorization.check(weight , values , Weight , weight.length));
         System.out.println(UnBoundedKnapSack01_Memorization.check(weight , values , Weight , weight.length));
+        System.out.println(FractionalKnapSack.check(weight , values , Weight , weight.length));
     }
 }
