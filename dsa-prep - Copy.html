@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>dsa-prep :: 100 Java Questions</title>
+<style>
+  :root{
+    --bg:#0a0e14;
+    --panel:#10151d;
+    --panel-2:#141a23;
+    --border:#1f2733;
+    --text:#c9d1d9;
+    --muted:#6e7681;
+    --mint:#58e6a4;
+    --amber:#e3b341;
+    --coral:#ff6b6b;
+    --mono: ui-monospace, "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--mono);}
+  body{padding:28px 16px 60px;}
+  .wrap{max-width:880px;margin:0 auto;}
+
+  /* terminal chrome */
+  .term{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,0.45);
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px;
+    background:var(--panel-2);
+    border-bottom:1px solid var(--border);
+  }
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .dot.r{background:#ff5f56;} .dot.y{background:#ffbd2e;} .dot.g{background:#27c93f;}
+  .term-title{margin-left:8px;color:var(--muted);font-size:12px;}
+  .term-body{padding:20px 22px 8px;}
+
+  .prompt{color:var(--muted);font-size:13px;margin:0 0 4px;}
+  .prompt .user{color:var(--mint);}
+  .prompt .cmd{color:var(--text);}
+  .cursor{display:inline-block;width:7px;height:14px;background:var(--mint);margin-left:2px;vertical-align:-2px;animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+
+  h1{
+    font-size:20px;margin:14px 0 4px;color:var(--text);letter-spacing:0.2px;
+  }
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px;line-height:1.6;}
+
+  /* progress */
+  .progress-row{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 14px;margin-bottom:22px;
+    background:var(--panel-2);border:1px solid var(--border);border-radius:6px;
+    font-size:12.5px;color:var(--muted);
+  }
+  .bar{flex:1;height:6px;background:#1a212b;border-radius:3px;overflow:hidden;}
+  .bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--mint),#3fd68a);transition:width .25s ease;}
+  #progress-count{color:var(--mint);font-weight:600;}
+
+  /* topic tree */
+  .topic{
+    border:1px solid var(--border);
+    border-radius:6px;
+    margin-bottom:10px;
+    background:var(--panel);
+    overflow:hidden;
+  }
+  .topic-head{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 14px;cursor:pointer;user-select:none;
+    background:var(--panel-2);
+  }
+  .topic-head:hover{background:#171f29;}
+  .caret{color:var(--muted);font-size:11px;transition:transform .15s ease;width:10px;}
+  .topic.open .caret{transform:rotate(90deg);}
+  .topic-name{color:var(--text);font-size:13.5px;}
+  .topic-name .slash{color:var(--muted);}
+  .topic-count{margin-left:auto;color:var(--muted);font-size:11.5px;}
+  .topic-list{display:none;padding:4px 0;}
+  .topic.open .topic-list{display:block;}
+
+  .row{
+    display:flex;align-items:baseline;gap:10px;
+    padding:7px 16px 7px 34px;
+    font-size:13px;
+    border-top:1px solid #151b24;
+  }
+  .row:hover{background:#0d1219;}
+  .idx{color:var(--muted);width:28px;flex:none;text-align:right;font-size:11.5px;}
+  .chk{
+    appearance:none;-webkit-appearance:none;
+    width:13px;height:13px;flex:none;
+    border:1px solid var(--border);border-radius:3px;
+    background:var(--panel);cursor:pointer;position:relative;top:1px;
+  }
+  .chk:checked{background:var(--mint);border-color:var(--mint);}
+  .chk:checked::after{
+    content:"";position:absolute;left:3px;top:0px;width:4px;height:8px;
+    border:solid var(--bg);border-width:0 2px 2px 0;transform:rotate(45deg);
+  }
+  .name{flex:1;color:var(--text);}
+  .row.done .name{color:var(--muted);text-decoration:line-through;}
+  .note{color:var(--muted);font-size:11.5px;}
+  .badge{
+    font-size:10px;padding:2px 6px;border-radius:3px;flex:none;
+    border:1px solid transparent;letter-spacing:.3px;
+  }
+  .Easy{color:var(--mint);border-color:#1f4d38;background:#0f2119;}
+  .Medium{color:var(--amber);border-color:#4d3f16;background:#211a0a;}
+  .Hard{color:var(--coral);border-color:#4d1f1f;background:#210f0f;}
+
+  .expand-btn{
+    flex:none;background:none;border:1px solid var(--border);color:var(--muted);
+    font-family:var(--mono);font-size:10px;border-radius:3px;padding:1px 6px;cursor:pointer;
+  }
+  .expand-btn:hover{color:var(--mint);border-color:var(--mint);}
+  .detail{
+    display:none;
+    margin:2px 16px 10px 62px;
+    padding:12px 14px;
+    background:#0d1219;
+    border:1px solid var(--border);
+    border-left:2px solid var(--mint);
+    border-radius:4px;
+    font-size:12px;
+    line-height:1.65;
+  }
+  .detail.open{display:block;}
+  .detail .k{color:var(--mint);font-size:10.5px;letter-spacing:.5px;display:block;margin:8px 0 2px;}
+  .detail .k:first-child{margin-top:0;}
+  .detail p{margin:2px 0;color:var(--text);}
+  .detail .ex{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:3px;
+    padding:6px 10px;color:var(--text);white-space:pre-wrap;font-size:11.5px;
+  }
+  .detail .cst{color:var(--muted);}
+
+  footer{
+    text-align:center;color:var(--muted);font-size:11.5px;margin-top:22px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="term">
+    <div class="term-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="term-title">vinod@dsa-prep — 100x24</span>
+    </div>
+    <div class="term-body">
+      <p class="prompt"><span class="user">vinod@dsa-prep</span><span class="cmd">:~$ cat study-plan.md</span><span class="cursor"></span></p>
+      <h1>Java DSA Prep — 100 Questions</h1>
+      <p class="sub">Arrays · Two Pointers · Sliding Window · Greedy · DP · Bit Manipulation · Trees · Graphs<br>
+      Ordered easy → hard within each topic. Click a topic to expand. Check off as you solve in Java.</p>
+
+      <div class="progress-row">
+        <span><span id="progress-count">0</span> / 100 solved</span>
+        <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+      </div>
+
+      <div id="topics"></div>
+
+      <footer>tracking resets on reload — solve, don't just check the box</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  { id:"arrays", label:"arrays/", problems:[
+    ["Find the maximum and minimum in an array","Easy",null,{
+      desc:"You are given an array of n integers. Find the maximum and the minimum element present in the array.",
+      input:"The first line contains a single integer n — the size of the array.\nThe second line contains n space-separated integers a[1], a[2], ..., a[n].",
+      output:"Print two space-separated integers: the maximum element followed by the minimum element.",
+      cst:"1 ≤ n ≤ 10^5\n-10^9 ≤ a[i] ≤ 10^9",
+      exIn:"5\n3 1 4 1 5", exOut:"5 1"
+    }],
+    ["Reverse an array in-place","Easy",null,{
+      desc:"Given an array of n integers, reverse it in place (O(1) extra space) and print the reversed array.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print the n integers in reversed order.",
+      cst:"1 ≤ n ≤ 10^5",
+      exIn:"5\n1 2 3 4 5", exOut:"5 4 3 2 1"
+    }],
+    ["Find the second largest element","Easy",null,{
+      desc:"Given an array of n distinct integers, find the second largest element without sorting the array.",
+      input:"First line: n. Second line: n space-separated distinct integers.",
+      output:"Print the second largest element. If it doesn't exist, print -1.",
+      cst:"1 ≤ n ≤ 10^5",
+      exIn:"4\n10 20 4 45", exOut:"20"
+    }],
+    ["Move all zeros to the end","Easy",null,{
+      desc:"Given an array containing n integers, move all zeros to the end while keeping the relative order of the non-zero elements. Modify the array in place.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print the array after moving all zeros to the end.",
+      cst:"1 ≤ n ≤ 10^5, 0 ≤ a[i] ≤ 10^9",
+      exIn:"7\n0 1 0 3 12 0 5", exOut:"1 3 12 5 0 0 0"
+    }],
+    ["Rotate array by k steps","Easy","reversal algorithm",{
+      desc:"Given an array of n integers and an integer k, rotate the array to the right by k steps.",
+      input:"First line: n and k. Second line: n space-separated integers.",
+      output:"Print the array after rotating it right by k steps.",
+      cst:"1 ≤ n ≤ 10^5, 0 ≤ k ≤ 10^9",
+      exIn:"7 3\n1 2 3 4 5 6 7", exOut:"5 6 7 1 2 3 4"
+    }],
+    ["Find the missing number in the range","Easy",null,{
+      desc:"An array of n distinct integers is formed by taking all numbers from 0 to n except one. Find the missing number.",
+      input:"First line: n. Second line: n space-separated distinct integers from the range [0, n].",
+      output:"Print the missing number.",
+      cst:"1 ≤ n ≤ 10^5",
+      exIn:"3\n3 0 1", exOut:"2"
+    }],
+    ["Find the duplicate number","Medium",null,{
+      desc:"Given an array of n+1 integers where every integer is in the range [1, n], exactly one number repeats (possibly more than once). Find that number without modifying the array and using O(1) extra space.",
+      input:"First line: n+1 — the array size. Second line: n+1 space-separated integers in [1, n].",
+      output:"Print the duplicate number.",
+      cst:"1 ≤ n ≤ 10^5",
+      exIn:"5\n1 3 4 2 2", exOut:"2"
+    }],
+    ["Maximum subarray sum","Medium","Kadane's algorithm",{
+      desc:"Given an array of n integers (possibly negative), find the maximum possible sum of a contiguous subarray.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print the maximum subarray sum.",
+      cst:"1 ≤ n ≤ 10^6, -10^4 ≤ a[i] ≤ 10^4",
+      exIn:"9\n-2 1 -3 4 -1 2 1 -5 4", exOut:"6"
+    }],
+    ["Merge two sorted arrays in-place","Medium",null,{
+      desc:"nums1 has size m+n, with the first m elements meaningful and the last n set to 0 as placeholders. nums2 has size n. Merge nums2 into nums1 in place so nums1 becomes one sorted array.",
+      input:"First line: m and n. Second line: m+n integers (nums1, trailing n slots are 0). Third line: n integers (nums2).",
+      output:"Print the merged, sorted array of size m+n.",
+      cst:"0 ≤ m, n ≤ 200",
+      exIn:"3 3\n1 2 3 0 0 0\n2 5 6", exOut:"1 2 2 3 5 6"
+    }],
+    ["Product of array except self","Medium",null,{
+      desc:"Given an array of n integers, return an array where each element is the product of all elements except itself, without using division and in O(n) time.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print n space-separated integers — the result array.",
+      cst:"2 ≤ n ≤ 10^5, -30 ≤ a[i] ≤ 30",
+      exIn:"4\n1 2 3 4", exOut:"24 12 8 6"
+    }],
+    ["Next permutation","Medium",null,{
+      desc:"Given an array representing a permutation of numbers, rearrange it into the lexicographically next greater permutation. If no such permutation exists, rearrange it into the lowest possible order.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print the next permutation.",
+      cst:"1 ≤ n ≤ 10^5",
+      exIn:"3\n1 2 3", exOut:"1 3 2"
+    }],
+    ["Merge overlapping intervals","Medium",null,{
+      desc:"Given a list of n intervals, merge all overlapping intervals and return the resulting non-overlapping intervals sorted by start time.",
+      input:"First line: n. Next n lines: two integers start[i] and end[i].",
+      output:"Print each merged interval on its own line as \"start end\".",
+      cst:"1 ≤ n ≤ 10^5, 0 ≤ start[i] ≤ end[i] ≤ 10^9",
+      exIn:"4\n1 3\n2 6\n8 10\n15 18", exOut:"1 6\n8 10\n15 18"
+    }],
+    ["Find the majority element","Medium","Boyer-Moore voting",{
+      desc:"Given an array of n elements, find the majority element — the element that appears more than ⌊n/2⌋ times. It is guaranteed to exist.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print the majority element.",
+      cst:"1 ≤ n ≤ 10^5",
+      exIn:"7\n2 2 1 1 1 2 2", exOut:"2"
+    }],
+    ["Maximum product subarray","Medium",null,{
+      desc:"Given an array of n integers (can include negatives and zeros), find the contiguous subarray with the largest product and return that product.",
+      input:"First line: n. Second line: n space-separated integers.",
+      output:"Print the maximum product.",
+      cst:"1 ≤ n ≤ 2×10^4, -10 ≤ a[i] ≤ 10",
+      exIn:"4\n2 3 -2 4", exOut:"6"
+    }],
+    ["Trapping rain water","Hard",null,{
+      desc:"Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.",
+      input:"First line: n. Second line: n space-separated non-negative integers.",
+      output:"Print the total units of trapped water.",
+      cst:"1 ≤ n ≤ 2×10^4, 0 ≤ height[i] ≤ 10^5",
+      exIn:"12\n0 1 0 2 1 0 1 3 2 1 2 1", exOut:"6"
+    }]
+  ]},
+  { id:"two-pointers", label:"two-pointers/", problems:[
+    ["Two sum on a sorted array","Easy"],
+    ["Reverse a string using two pointers","Easy"],
+    ["Check if a string is a palindrome","Easy"],
+    ["Remove duplicates from sorted array","Easy"],
+    ["Container with most water","Medium"],
+    ["3Sum","Medium"],
+    ["4Sum","Medium"],
+    ["Sort an array of 0s, 1s, 2s","Medium","Dutch national flag"],
+    ["Valid triangle number","Medium"],
+    ["Trapping rain water, two-pointer version","Hard"]
+  ]},
+  { id:"sliding-window", label:"sliding-window/", problems:[
+    ["Maximum sum subarray of size k","Easy"],
+    ["First negative number in every window of size k","Easy"],
+    ["Longest substring without repeating characters","Medium"],
+    ["Longest substring with at most K distinct characters","Medium"],
+    ["Longest repeating character replacement","Medium"],
+    ["Fruit into baskets","Medium"],
+    ["Permutation in string","Medium"],
+    ["Max consecutive ones III","Medium"],
+    ["Sliding window maximum","Hard"],
+    ["Minimum window substring","Hard"]
+  ]},
+  { id:"greedy", label:"greedy/", problems:[
+    ["Activity selection problem","Medium"],
+    ["Fractional knapsack","Medium"],
+    ["Job sequencing with deadlines","Medium"],
+    ["Minimum number of platforms needed","Medium"],
+    ["Gas station problem","Medium"],
+    ["Jump game — can you reach the end","Medium"],
+    ["Jump game II — minimum jumps","Medium"],
+    ["Minimum coins for change, greedy version","Medium"],
+    ["Candy distribution problem","Hard"],
+    ["Huffman coding","Hard"]
+  ]},
+  { id:"dp", label:"dynamic-programming/", problems:[
+    ["Climbing stairs","Easy"],
+    ["Fibonacci number","Easy","memoization"],
+    ["House robber","Easy"],
+    ["House robber II","Medium","circular array"],
+    ["Min cost climbing stairs","Easy"],
+    ["Maximum subarray, DP formulation","Medium"],
+    ["Jump game — can you reach the end","Medium"],
+    ["Jump game II — minimum jumps","Medium"],
+    ["Delete and earn","Medium"],
+    ["Decode ways","Medium"],
+    ["Unique paths","Medium"],
+    ["Unique paths II — with obstacles","Medium"],
+    ["Minimum path sum","Medium"],
+    ["Triangle — minimum path sum","Medium"],
+    ["Minimum falling path sum","Medium"],
+    ["Maximal square","Medium"],
+    ["Maximal rectangle","Hard"],
+    ["Count square submatrices with all ones","Medium"],
+    ["Dungeon game","Hard"],
+    ["Cherry pickup","Hard"],
+    ["0/1 knapsack","Medium"],
+    ["Unbounded knapsack","Medium"],
+    ["Subset sum","Medium"],
+    ["Partition equal subset sum","Medium"],
+    ["Target sum","Medium"],
+    ["Coin change — minimum coins","Medium"],
+    ["Coin change II — number of ways","Medium"],
+    ["Perfect squares","Medium"],
+    ["Combination sum IV","Medium"],
+    ["Ones and zeroes — 2D knapsack","Medium"],
+    ["Longest common subsequence","Medium"],
+    ["Longest common substring","Medium"],
+    ["Shortest common supersequence","Hard"],
+    ["Edit distance","Hard"],
+    ["Distinct subsequences","Hard"],
+    ["Longest palindromic subsequence","Medium"],
+    ["Longest palindromic substring","Medium"],
+    ["Palindrome partitioning II — minimum cuts","Hard"],
+    ["Wildcard matching","Hard"],
+    ["Regular expression matching","Hard"],
+    ["Interleaving string","Medium"],
+    ["Word break","Medium"],
+    ["Word break II — return all sentences","Hard"],
+    ["Longest increasing subsequence","Medium"],
+    ["Number of longest increasing subsequences","Medium"],
+    ["Russian doll envelopes","Hard","LIS variant"],
+    ["Longest bitonic subsequence","Medium"],
+    ["Maximum length of repeated subarray","Medium"],
+    ["Minimum insertions to make a string palindrome","Hard"],
+    ["Count different palindromic subsequences","Hard"],
+    ["Best time to buy and sell stock","Easy"],
+    ["Best time to buy and sell stock II","Medium"],
+    ["Best time to buy and sell stock III","Hard","at most 2 transactions"],
+    ["Best time to buy and sell stock IV","Hard","at most k transactions"],
+    ["Best time to buy/sell stock with cooldown","Medium"],
+    ["Best time to buy/sell stock with transaction fee","Medium"],
+    ["Matrix chain multiplication","Hard"],
+    ["Burst balloons","Hard"],
+    ["Minimum cost to merge stones","Hard"],
+    ["Optimal binary search tree","Hard"],
+    ["Boolean parenthesization","Hard"],
+    ["Egg drop puzzle","Hard"],
+    ["Minimum score triangulation of a polygon","Medium"],
+    ["Partition to k equal sum subsets","Medium","bitmask DP"],
+    ["Traveling salesman problem","Hard","bitmask DP"],
+    ["Shortest path visiting all nodes","Hard","bitmask DP"],
+    ["Tiling a 2×N board with 1×2 tiles","Medium"],
+    ["Assignment problem","Hard","bitmask DP"],
+    ["House robber III — binary tree","Medium","tree DP"],
+    ["Diameter of a binary tree","Easy","tree DP"],
+    ["Maximum path sum in a binary tree","Hard","tree DP"],
+    ["Longest path with different adjacent characters","Medium","tree DP"],
+    ["Binary tree cameras","Hard","tree DP"],
+    ["Count numbers with unique digits","Medium","digit DP"],
+    ["Numbers at most N with given digit set","Hard","digit DP"],
+    ["Count integers with even digit sum","Medium","digit DP"],
+    ["Stone game","Medium","game theory DP"],
+    ["Predict the winner","Medium","game theory DP"],
+    ["Stone game II","Hard","game theory DP"],
+    ["Longest increasing path in a matrix","Hard"],
+    ["Number of paths with a given cost in a grid","Medium"],
+    ["Frog jump","Medium"],
+    ["Minimum number of refueling stops","Hard"],
+    ["Scramble string","Hard"],
+    ["Distinct subsequences II","Hard"],
+    ["Count palindromic substrings","Medium"],
+    ["Longest valid parentheses","Hard"],
+    ["Super egg drop","Hard","binary search + DP"],
+    ["Split array largest sum","Hard","binary search + DP"],
+    ["Paint house","Easy"],
+    ["Paint house II","Hard"],
+    ["Profitable schemes","Hard","2D knapsack with count"],
+    ["Number of dice rolls with target sum","Medium"],
+    ["K inverse pairs array","Hard"],
+    ["Count vowels permutation","Medium"],
+    ["Tallest billboard","Hard"],
+    ["Minimum number of taps to open to water a garden","Hard"],
+    ["Maximum students taking exam","Hard","bitmask DP"],
+    ["Cherry pickup II","Hard"],
+    ["Stickers to spell word","Hard","bitmask DP"]
+  ]},
+  { id:"bit-manipulation", label:"bit-manipulation/", problems:[
+    ["Check if a number is a power of 2","Easy"],
+    ["Swap two numbers without a temp variable","Easy"],
+    ["Check if the i-th bit is set","Easy"],
+    ["Find the missing number using XOR","Easy"],
+    ["Count set bits in a number","Easy","Brian Kernighan's"],
+    ["Find the single non-repeating number","Easy","XOR"],
+    ["Count total set bits from 1 to N","Medium"],
+    ["Generate all subsets using bitmasking","Medium"],
+    ["Find two non-repeating numbers in an array","Medium"],
+    ["Maximum XOR of two numbers in an array","Hard"]
+  ]},
+  { id:"trees", label:"trees/", problems:[
+    ["Inorder, preorder, postorder traversal","Easy"],
+    ["Level order traversal","Easy","BFS"],
+    ["Height / depth of a binary tree","Easy"],
+    ["Convert sorted array to a BST","Easy"],
+    ["Check if a binary tree is height-balanced","Medium"],
+    ["Diameter of a binary tree","Medium"],
+    ["Lowest common ancestor","Medium"],
+    ["Validate a binary search tree","Medium"],
+    ["Zigzag level order traversal","Medium"],
+    ["Right side view of a binary tree","Medium"],
+    ["Kth smallest element in a BST","Medium"],
+    ["Construct binary tree from inorder + preorder","Medium"],
+    ["Vertical order traversal","Medium"],
+    ["Maximum path sum in a binary tree","Hard"],
+    ["Serialize and deserialize a binary tree","Hard"]
+  ]},
+  { id:"graphs", label:"graphs/", problems:[
+    ["Represent a graph — adjacency list vs matrix","Easy"],
+    ["BFS traversal of a graph","Easy"],
+    ["DFS traversal of a graph","Easy"],
+    ["Detect a cycle in an undirected graph","Medium"],
+    ["Detect a cycle in a directed graph","Medium"],
+    ["Topological sort","Medium"],
+    ["Number of islands","Medium"],
+    ["Clone a graph","Medium"],
+    ["Course schedule","Medium","cycle detect + topo sort"],
+    ["Dijkstra's shortest path","Medium"],
+    ["Bellman-Ford algorithm","Hard"],
+    ["Minimum spanning tree — Kruskal's","Hard"],
+    ["Minimum spanning tree — Prim's","Hard"],
+    ["Word ladder — shortest transformation","Hard"],
+    ["Bridges in a graph","Hard","Tarjan's"]
+  ]}
+];
+
+const container = document.getElementById("topics");
+let globalIndex = 0;
+const totalRows = [];
+
+DATA.forEach((topic, ti) => {
+  const el = document.createElement("div");
+  el.className = "topic" + (ti === 0 ? " open" : "");
+
+  const head = document.createElement("div");
+  head.className = "topic-head";
+  head.innerHTML = `<span class="caret">▸</span><span class="topic-name"><span class="slash">./</span>${topic.label}</span><span class="topic-count">${topic.problems.length} questions</span>`;
+  head.addEventListener("click", () => el.classList.toggle("open"));
+
+  const list = document.createElement("div");
+  list.className = "topic-list";
+
+  topic.problems.forEach(p => {
+    globalIndex++;
+    const [name, diff, note, spec] = p;
+    const qid = "q" + globalIndex;
+
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <span class="idx">${String(globalIndex).padStart(3,"0")}</span>
+      <input type="checkbox" class="chk" id="${qid}">
+      <label class="name" for="${qid}">${name}${note ? ` <span class="note">— ${note}</span>` : ""}</label>
+      <span class="badge ${diff}">${diff}</span>
+      ${spec ? `<button type="button" class="expand-btn">{ }</button>` : ""}
+    `;
+    const cb = row.querySelector(".chk");
+    cb.addEventListener("change", () => {
+      row.classList.toggle("done", cb.checked);
+      updateProgress();
+    });
+    totalRows.push(cb);
+    list.appendChild(row);
+
+    if (spec) {
+      const detail = document.createElement("div");
+      detail.className = "detail";
+      detail.innerHTML = `
+        <span class="k">problem</span><p>${spec.desc}</p>
+        <span class="k">input</span><p>${spec.input.replace(/\n/g,"<br>")}</p>
+        <span class="k">output</span><p>${spec.output.replace(/\n/g,"<br>")}</p>
+        <span class="k">constraints</span><p class="cst">${spec.cst.replace(/\n/g,"<br>")}</p>
+        <span class="k">example</span>
+        <div class="ex">Input:\n${spec.exIn}\n\nOutput:\n${spec.exOut}</div>
+      `;
+      list.appendChild(detail);
+      const btn = row.querySelector(".expand-btn");
+      btn.addEventListener("click", () => {
+        detail.classList.toggle("open");
+        btn.textContent = detail.classList.contains("open") ? "{x}" : "{ }";
+      });
+    }
+  });
+
+  el.appendChild(head);
+  el.appendChild(list);
+  container.appendChild(el);
+});
+
+function updateProgress(){
+  const done = totalRows.filter(cb => cb.checked).length;
+  document.getElementById("progress-count").textContent = done;
+  document.getElementById("bar-fill").style.width = (done/totalRows.length*100) + "%";
+}
+</script>
+</body>
+</html>
