@@ -9,3 +9,7 @@ TRY APPROCHING TOWARD THE STEP-1
 STEP - 3
 ---------------------
 CONDITIONS DIAGRAM
+
+STEP - 4
+---------------------
+CODE
