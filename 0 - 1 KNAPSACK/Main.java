@@ -43,7 +43,7 @@ class KnapSack01_Memorization{
             return memory[weight][length];
         }
         else{
-            return memory[weight][length]=Math.max(arr2[length-1] + check(arr1,arr2,weight-arr1[length-1],length-1),check(arr1,arr2,weight,length-1));
+            return memory[weight][length] = Math.max(arr2[length-1] + check(arr1,arr2,weight-arr1[length-1],length-1),check(arr1,arr2,weight,length-1));
         }
     
     }
